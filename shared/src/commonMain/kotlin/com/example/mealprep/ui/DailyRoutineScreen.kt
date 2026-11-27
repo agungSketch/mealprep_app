@@ -16,16 +16,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mealprep.data.SavedMealPlanTemplate
 import com.example.mealprep.domain.DailyMealCheck
 import com.example.mealprep.domain.DailyRoutineState
 import com.example.mealprep.domain.DateUtils
-import com.example.mealprep.domain.MealSlot
+import com.example.mealprep.domain.MealRecommendationEngine
+import com.example.mealprep.domain.RecommendedDayPlan
 import com.example.mealprep.domain.ScaledMeal
 
 @Composable
 fun DailyRoutineScreen(
     routineState: DailyRoutineState,
+    savedTemplates: List<SavedMealPlanTemplate> = emptyList(),
     onUpdateRoutineState: (DailyRoutineState) -> Unit,
+    onApplyPlanToDate: (String, RecommendedDayPlan) -> Unit,
     onOpenCalculator: () -> Unit,
     onOpenMealResult: () -> Unit,
     onBackToCalendar: () -> Unit
@@ -35,6 +39,102 @@ fun DailyRoutineScreen(
 
     val calorieProgress = (routineState.consumedCalories.toFloat() / targetCalories.toFloat()).coerceIn(0f, 1f)
     val remainingCalories = targetCalories - routineState.consumedCalories
+
+    var showChangeMenuDialog by remember { mutableStateOf(false) }
+
+    // Dialog Pilihan / Ganti Menu untuk Tanggal Ini
+    if (showChangeMenuDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangeMenuDialog = false },
+            title = {
+                Text(
+                    text = "🍽️ Pilihan Menu untuk ${DateUtils.formatIndonesianDate(routineState.dateIso)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Pilih menu AI baru atau gunakan menu tersimpan tanpa memakai token AI:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Pilihan 1: Generate Acak Menu Baru (Engine / AI)
+                    OutlinedButton(
+                        onClick = {
+                            val newPlan = if (macroTarget != null) {
+                                MealRecommendationEngine.generateDayPlan(macroTarget)
+                            } else {
+                                MealRecommendationEngine.generateDayPlan(
+                                    com.example.mealprep.domain.MacroTarget(2000, 2000, 120, 200, 50)
+                                )
+                            }
+                            onApplyPlanToDate(routineState.dateIso, newPlan)
+                            showChangeMenuDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("🎲 Acak Menu Baru (Lokal Engine)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    Text(
+                        text = "📚 Koleksi Menu Tersimpan (0 Token AI):",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    if (savedTemplates.isEmpty()) {
+                        Text(
+                            text = "Belum ada koleksi menu tersimpan.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            savedTemplates.forEach { tpl ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onApplyPlanToDate(routineState.dateIso, tpl.plan)
+                                            showChangeMenuDialog = false
+                                        },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text(
+                                            text = tpl.title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = tpl.plan.meals.joinToString(" • ") { it.name },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            maxLines = 1,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showChangeMenuDialog = false }) {
+                    Text("Tutup")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -103,7 +203,6 @@ fun DailyRoutineScreen(
                         )
                     }
 
-                    // Linear Progress Bar
                     LinearProgressIndicator(
                         progress = { calorieProgress },
                         modifier = Modifier
@@ -136,7 +235,6 @@ fun DailyRoutineScreen(
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
                     )
 
-                    // Breakdown Makronutrisi yang telah dikonsumsi
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -201,14 +299,15 @@ fun DailyRoutineScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "🍽️ Jurnal Makan Hari Ini (${routineState.completedMealsCount}/${routineState.mealChecks.size.coerceAtLeast(3)})",
+                    text = "🍽️ Jurnal Makan Tanggal Ini (${routineState.completedMealsCount}/${routineState.mealChecks.size.coerceAtLeast(3)})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                if (macroTarget != null) {
-                    TextButton(onClick = onOpenMealResult) {
-                        Text("Lihat Resep Lengkap", fontSize = 12.sp)
-                    }
+                TextButton(
+                    onClick = { showChangeMenuDialog = true },
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                ) {
+                    Text("🔀 Ganti Menu Tanggal Ini", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -223,25 +322,41 @@ fun DailyRoutineScreen(
                     Column(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(text = "🥗", fontSize = 36.sp)
                         Text(
-                            text = "Belum Ada Menu Terjadwal",
+                            text = "Belum Ada Menu Terjadwal untuk Tanggal Ini",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Buat racikan menu sehat menggunakan Kalkulator & AI Meal Plan.",
+                            text = "Pilih menu dari koleksi tersimpan atau buat racikan menu baru untuk tanggal ini.",
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Button(
-                            onClick = onOpenCalculator,
-                            shape = RoundedCornerShape(10.dp)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Buat Menu Sekarang", fontSize = 12.sp)
+                            Button(
+                                onClick = { showChangeMenuDialog = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Pilih / Ganti Menu", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            OutlinedButton(
+                                onClick = onOpenMealResult,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Menu AI Gemini", fontSize = 11.sp)
+                            }
                         }
                     }
                 }
@@ -312,7 +427,6 @@ fun DailyRoutineScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                // Tombol aksi Tambah Air
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -470,7 +584,7 @@ private fun RoutineMealItemCard(
                 ) {
                     Checkbox(
                         checked = mealCheck.isCompleted,
-                        onCheckedChange = onToggle
+                        onToggle
                     )
                     Text(
                         text = meal.slot.label,

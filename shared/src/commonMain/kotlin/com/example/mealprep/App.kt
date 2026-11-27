@@ -208,8 +208,20 @@ fun App() {
 
                     DailyRoutineScreen(
                         routineState = selectedState,
+                        savedTemplates = savedTemplates,
                         onUpdateRoutineState = { newState ->
                             updateRoutineForDate(dateIso, newState)
+                        },
+                        onApplyPlanToDate = { targetDateIso, plan ->
+                            val goal = latestGoal ?: GoalType.MAINTAIN
+                            val target = latestMacroTarget ?: MacroTarget(
+                                tdeeCalories = plan.targetCalories,
+                                targetCalories = plan.targetCalories,
+                                proteinGrams = plan.totalProteinGrams,
+                                carbsGrams = plan.totalCarbsGrams,
+                                fatGrams = plan.totalFatGrams
+                            )
+                            applyPlanToRoutine(goal, target, plan, dateIso = targetDateIso)
                         },
                         onOpenCalculator = { currentRoute = AppRoute.Calculator },
                         onOpenMealResult = {
