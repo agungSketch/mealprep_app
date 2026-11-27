@@ -41,7 +41,7 @@ fun HomeScreen(
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "MealPrep AI",
+                text = "GramPulse AI",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
