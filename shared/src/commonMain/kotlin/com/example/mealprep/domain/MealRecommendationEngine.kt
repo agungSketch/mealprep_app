@@ -1,8 +1,10 @@
 package com.example.mealprep.domain
 
+import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+@Serializable
 enum class MealSlot(val label: String, val calorieShare: Double) {
     BREAKFAST("Sarapan / Meal 1", 0.25),
     LUNCH("Makan Siang / Meal 2", 0.40),
@@ -22,6 +24,7 @@ data class BaseMealRecipe(
     val baseIngredients: List<String>
 )
 
+@Serializable
 data class ScaledMeal(
     val id: String,
     val name: String,
@@ -37,6 +40,7 @@ data class ScaledMeal(
     val scaledIngredients: List<String>
 )
 
+@Serializable
 data class RecommendedDayPlan(
     val targetCalories: Int,
     val totalPlannedCalories: Int,

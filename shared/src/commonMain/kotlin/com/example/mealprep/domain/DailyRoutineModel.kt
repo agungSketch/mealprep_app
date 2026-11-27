@@ -1,10 +1,14 @@
 package com.example.mealprep.domain
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class DailyMealCheck(
     val meal: ScaledMeal,
     val isCompleted: Boolean = false
 )
 
+@Serializable
 data class DailyHabit(
     val id: String,
     val title: String,
@@ -13,6 +17,7 @@ data class DailyHabit(
     val isCompleted: Boolean = false
 )
 
+@Serializable
 data class DailyRoutineState(
     val dateIso: String = "2026-11-17",
     val activeGoal: GoalType? = null,

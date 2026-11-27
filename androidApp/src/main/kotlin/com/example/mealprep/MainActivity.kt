@@ -7,8 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 
+import com.example.mealprep.data.ApplicationContextProvider
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        ApplicationContextProvider.context = applicationContext
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 

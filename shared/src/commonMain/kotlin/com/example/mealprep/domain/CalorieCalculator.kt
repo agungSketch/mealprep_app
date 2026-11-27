@@ -1,5 +1,6 @@
 package com.example.mealprep.domain
 
+import kotlinx.serialization.Serializable
 import kotlin.math.roundToInt
 
 enum class Gender { MALE, FEMALE }
@@ -11,12 +12,14 @@ enum class ActivityLevel(val multiplier: Double) {
     ACTIVE(1.725)        // Berat (6-7 hari/minggu)
 }
 
+@Serializable
 enum class GoalType(val label: String, val calorieDelta: Int) {
     CUT("Defisit (Turun BB)", -400),
     MAINTAIN("Maintain (Jaga BB)", 0),
     BULK("Surplus (Naik BB / Massa Otot)", 350)
 }
 
+@Serializable
 data class MacroTarget(
     val tdeeCalories: Int,
     val targetCalories: Int,
@@ -52,7 +55,6 @@ object CalorieCalculator {
         val tdee = calculateTdee(weightKg, heightCm, ageYears, gender, activityLevel).roundToInt()
         val targetCalories = (tdee + goal.calorieDelta).coerceAtLeast(1200)
 
-        // Estimasi praktis: protein ~1.8g/kg BB, lemak ~25% kalori, sisa kalori ke karbohidrat
         val proteinGrams = (weightKg * 1.8).roundToInt()
         val fatGrams = ((targetCalories * 0.25) / 9.0).roundToInt()
 

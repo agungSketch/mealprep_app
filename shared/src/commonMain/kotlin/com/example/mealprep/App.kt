@@ -4,6 +4,9 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import com.example.mealprep.data.AppPersistedData
+import com.example.mealprep.data.LocalMealRepository
+import com.example.mealprep.data.SavedMealPlanTemplate
 import com.example.mealprep.domain.DailyMealCheck
 import com.example.mealprep.domain.DailyRoutineState
 import com.example.mealprep.domain.GoalType
@@ -38,12 +41,31 @@ fun App() {
 
     MaterialTheme {
         var currentRoute by remember { mutableStateOf<AppRoute>(AppRoute.HeroSplash) }
-        var latestGoal by remember { mutableStateOf<GoalType?>(null) }
-        var latestMacroTarget by remember { mutableStateOf<MacroTarget?>(null) }
-        var latestActivePlan by remember { mutableStateOf<RecommendedDayPlan?>(null) }
+
+        // Local Storage Repository
+        val repository = remember { LocalMealRepository() }
+        val initialPersisted = remember { repository.loadPersistedData() }
+
+        var latestGoal by remember { mutableStateOf(initialPersisted.latestGoal) }
+        var latestMacroTarget by remember { mutableStateOf(initialPersisted.latestMacroTarget) }
+        var latestActivePlan by remember { mutableStateOf(initialPersisted.latestActivePlan) }
+        var routineLogs by remember { mutableStateOf(initialPersisted.routineLogs) }
+        var savedTemplates by remember { mutableStateOf(initialPersisted.savedTemplates) }
+
+        // Otomatis simpan data ke penyimpanan lokal perangkat setiap ada perubahan
+        LaunchedEffect(routineLogs, latestGoal, latestMacroTarget, latestActivePlan, savedTemplates) {
+            repository.savePersistedData(
+                AppPersistedData(
+                    routineLogs = routineLogs,
+                    latestGoal = latestGoal,
+                    latestMacroTarget = latestMacroTarget,
+                    latestActivePlan = latestActivePlan,
+                    savedTemplates = savedTemplates
+                )
+            )
+        }
 
         val todayIso = "2026-11-17"
-        var routineLogs by remember { mutableStateOf<Map<String, DailyRoutineState>>(emptyMap()) }
 
         fun getRoutineForDate(dateIso: String): DailyRoutineState {
             return routineLogs[dateIso] ?: DailyRoutineState(
@@ -60,18 +82,30 @@ fun App() {
         }
 
         // Helper untuk sinkronisasi rencana menu ke Daily Routine
-        fun applyPlanToRoutine(goal: GoalType, target: MacroTarget, plan: RecommendedDayPlan) {
+        fun applyPlanToRoutine(goal: GoalType, target: MacroTarget, plan: RecommendedDayPlan, dateIso: String = todayIso) {
             latestActivePlan = plan
             val mealChecks = plan.meals.map { DailyMealCheck(meal = it, isCompleted = false) }
-            val existingToday = getRoutineForDate(todayIso)
-            val updatedToday = existingToday.copy(
-                dateIso = todayIso,
+            val existingState = getRoutineForDate(dateIso)
+            val updatedState = existingState.copy(
+                dateIso = dateIso,
                 activeGoal = goal,
                 macroTarget = target,
                 activePlan = plan,
                 mealChecks = mealChecks
             )
-            updateRoutineForDate(todayIso, updatedToday)
+            updateRoutineForDate(dateIso, updatedState)
+
+            // Auto simpan ke pustaka template lokal agar bisa dipakai lagi tanpa token AI
+            val templateTitle = "Menu ${plan.meals.firstOrNull()?.name?.take(20) ?: "Sehat"} (${plan.totalPlannedCalories} kcal)"
+            val newTemplate = SavedMealPlanTemplate(
+                id = "tpl_${dateIso}_${plan.totalPlannedCalories}",
+                title = templateTitle,
+                dateCreatedIso = dateIso,
+                plan = plan
+            )
+            if (savedTemplates.none { it.id == newTemplate.id }) {
+                savedTemplates = savedTemplates + newTemplate
+            }
         }
 
         val currentTodayState = getRoutineForDate(todayIso)
