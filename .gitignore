@@ -22,6 +22,10 @@ node_modules/
 *.apk
 *.aab
 androidApp/release/
+.env
+.env.local
+.env.*
+!.env.example
 
 # Tooling / IDE folders
 .factory/

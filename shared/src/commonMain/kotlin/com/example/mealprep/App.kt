@@ -29,7 +29,7 @@ private sealed interface AppRoute {
     data object DailyRoutine : AppRoute
 }
 
-private const val GEMINI_API_KEY = ""
+private val GEMINI_API_KEY = BuildKonfig.GEMINI_API_KEY
 
 @Composable
 fun App() {
