@@ -112,150 +112,166 @@ class GeminiMealPlannerService(
             return Result.failure(Exception("Gemini API Key belum diisi. Silakan isi GEMINI_API_KEY di file .env terlebih dahulu."))
         }
 
-        return try {
-            val promptText = """
-                Kamu adalah chef meal prep & ahli gizi olahraga Indonesia.
-                Buatkan 3 racikan menu harian lengkap (BREAKFAST, LUNCH, DINNER) yang lezat beserta takaran bahan dan langkah-langkah cara memasaknya untuk program ${goal.label} (Target Harian: ${macroTarget.targetCalories} kcal, Protein: ${macroTarget.proteinGrams}g, Karbo: ${macroTarget.carbsGrams}g, Lemak: ${macroTarget.fatGrams}g).
-                Kembalikan HANYA JSON valid dengan struktur persis seperti berikut:
+        val promptText = """
+            Kamu adalah chef meal prep & ahli gizi olahraga Indonesia.
+            Buatkan 3 racikan menu harian lengkap (BREAKFAST, LUNCH, DINNER) yang lezat beserta takaran bahan dan langkah-langkah cara memasaknya untuk program ${goal.label} (Target Harian: ${macroTarget.targetCalories} kcal, Protein: ${macroTarget.proteinGrams}g, Karbo: ${macroTarget.carbsGrams}g, Lemak: ${macroTarget.fatGrams}g).
+            Kembalikan HANYA JSON valid dengan struktur persis seperti berikut:
+            {
+              "meals": [
                 {
-                  "meals": [
-                    {
-                      "slotName":"BREAKFAST",
-                      "name":"Oatmeal Telur & Pisang",
-                      "calories":450,
-                      "proteinGrams":25,
-                      "carbsGrams":50,
-                      "fatGrams":14,
-                      "prepMinutes":10,
-                      "highlights":["Tinggi Serat"],
-                      "ingredients":["60g oat","2 telur rebus","1 pisang"],
-                      "instructions":["Seduh oat dengan air/susu hangat.","Rebus telur 8 menit hingga matang.","Potong pisang dan sajikan bersama."]
-                    },
-                    {
-                      "slotName":"LUNCH",
-                      "name":"Ayam Bakar Nasi Merah",
-                      "calories":750,
-                      "proteinGrams":45,
-                      "carbsGrams":75,
-                      "fatGrams":18,
-                      "prepMinutes":20,
-                      "highlights":["High Protein"],
-                      "ingredients":["150g dada ayam","150g nasi merah","100g brokoli"],
-                      "instructions":["Bumbui ayam dengan kecap manis & lada.","Panggang ayam di pan antilengket.","Kukus brokoli dan sajikan dengan nasi merah."]
-                    },
-                    {
-                      "slotName":"DINNER",
-                      "name":"Ikan Dori Panggang Lemon",
-                      "calories":600,
-                      "proteinGrams":35,
-                      "carbsGrams":55,
-                      "fatGrams":15,
-                      "prepMinutes":15,
-                      "highlights":["Low Fat"],
-                      "ingredients":["150g dori","150g kentang rebus"],
-                      "instructions":["Lumuri ikan dori dengan perasan lemon & lada.","Panggang dori hingga matang merata.","Rebus kentang dan sajikan hangat."]
-                    }
-                  ]
+                  "slotName":"BREAKFAST",
+                  "name":"Oatmeal Telur & Pisang",
+                  "calories":450,
+                  "proteinGrams":25,
+                  "carbsGrams":50,
+                  "fatGrams":14,
+                  "prepMinutes":10,
+                  "highlights":["Tinggi Serat"],
+                  "ingredients":["60g oat","2 telur rebus","1 pisang"],
+                  "instructions":["Seduh oat dengan air/susu hangat.","Rebus telur 8 menit hingga matang.","Potong pisang dan sajikan bersama."]
+                },
+                {
+                  "slotName":"LUNCH",
+                  "name":"Ayam Bakar Nasi Merah",
+                  "calories":750,
+                  "proteinGrams":45,
+                  "carbsGrams":75,
+                  "fatGrams":18,
+                  "prepMinutes":20,
+                  "highlights":["High Protein"],
+                  "ingredients":["150g dada ayam","150g nasi merah","100g brokoli"],
+                  "instructions":["Bumbui ayam dengan kecap manis & lada.","Panggang ayam di pan antilengket.","Kukus brokoli dan sajikan dengan nasi merah."]
+                },
+                {
+                  "slotName":"DINNER",
+                  "name":"Ikan Dori Panggang Lemon",
+                  "calories":600,
+                  "proteinGrams":35,
+                  "carbsGrams":55,
+                  "fatGrams":15,
+                  "prepMinutes":15,
+                  "highlights":["Low Fat"],
+                  "ingredients":["150g dori","150g kentang rebus"],
+                  "instructions":["Lumuri ikan dori dengan perasan lemon & lada.","Panggang dori hingga matang merata.","Rebus kentang dan sajikan hangat."]
                 }
-            """.trimIndent()
+              ]
+            }
+        """.trimIndent()
 
-            val requestBody = GeminiMealPlanRequest(
-                contents = listOf(
-                    GeminiMealPlanContent(
-                        parts = listOf(GeminiMealPlanPart(text = promptText))
+        val requestBody = GeminiMealPlanRequest(
+            contents = listOf(
+                GeminiMealPlanContent(
+                    parts = listOf(GeminiMealPlanPart(text = promptText))
+                )
+            ),
+            generationConfig = GeminiMealPlanGenerationConfig(
+                responseMimeType = "application/json"
+            )
+        )
+
+        val candidateUrls = listOf(
+            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey.trim()}",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey.trim()}"
+        )
+
+        var lastException: Exception? = null
+
+        for (url in candidateUrls) {
+            try {
+                val response: GeminiMealPlanResponse = client.post(url) {
+                    contentType(ContentType.Application.Json)
+                    setBody(requestBody)
+                }.body()
+
+                if (response.error != null) {
+                    val errCode = response.error.code ?: 0
+                    val errMsg = response.error.message ?: ""
+                    if (errCode == 404 || errMsg.contains("is not found", ignoreCase = true)) {
+                        lastException = Exception("Gemini AI Error ($errCode): $errMsg")
+                        continue
+                    }
+                    return Result.failure(Exception("Gemini AI Error: $errMsg"))
+                }
+
+                val rawJsonText = response.candidates
+                    ?.firstOrNull()
+                    ?.content
+                    ?.parts
+                    ?.firstOrNull()
+                    ?.text
+                    ?: continue
+
+                val cleanJsonText = rawJsonText
+                    .trim()
+                    .removePrefix("```json")
+                    .removePrefix("```")
+                    .removeSuffix("```")
+                    .trim()
+
+                val aiPlan = jsonParser.decodeFromString<AiDayPlanDto>(cleanJsonText)
+
+                val scaledMeals = aiPlan.meals.mapIndexed { index, meal ->
+                    val slot = when (meal.slotName.uppercase()) {
+                        "BREAKFAST" -> MealSlot.BREAKFAST
+                        "LUNCH" -> MealSlot.LUNCH
+                        "DINNER" -> MealSlot.DINNER
+                        else -> when (index) {
+                            0 -> MealSlot.BREAKFAST
+                            1 -> MealSlot.LUNCH
+                            else -> MealSlot.DINNER
+                        }
+                    }
+
+                    ScaledMeal(
+                        id = "ai_meal_$index",
+                        name = meal.name,
+                        slot = slot,
+                        portionMultiplier = 1.0,
+                        portionLabel = "Porsi AI",
+                        calories = meal.calories,
+                        proteinGrams = meal.proteinGrams,
+                        carbsGrams = meal.carbsGrams,
+                        fatGrams = meal.fatGrams,
+                        prepMinutes = meal.prepMinutes,
+                        highlights = meal.highlights.ifEmpty { listOf("Resep AI") },
+                        scaledIngredients = meal.ingredients,
+                        instructions = meal.instructions
                     )
-                ),
-                generationConfig = GeminiMealPlanGenerationConfig(
-                    responseMimeType = "application/json"
-                )
-            )
-
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}"
-
-            val response: GeminiMealPlanResponse = client.post(url) {
-                contentType(ContentType.Application.Json)
-                setBody(requestBody)
-            }.body()
-
-            response.error?.let { err ->
-                val msg = err.message ?: "Error HTTP ${err.code}"
-                return Result.failure(Exception("Gemini AI Error: $msg"))
-            }
-
-            val rawJsonText = response.candidates
-                ?.firstOrNull()
-                ?.content
-                ?.parts
-                ?.firstOrNull()
-                ?.text
-                ?: return Result.failure(Exception("Respons kosong dari Gemini AI."))
-
-            val cleanJsonText = rawJsonText
-                .trim()
-                .removePrefix("```json")
-                .removePrefix("```")
-                .removeSuffix("```")
-                .trim()
-
-            val aiPlan = jsonParser.decodeFromString<AiDayPlanDto>(cleanJsonText)
-
-            val scaledMeals = aiPlan.meals.mapIndexed { index, meal ->
-                val slot = when (meal.slotName.uppercase()) {
-                    "BREAKFAST" -> MealSlot.BREAKFAST
-                    "LUNCH" -> MealSlot.LUNCH
-                    "DINNER" -> MealSlot.DINNER
-                    else -> when (index) {
-                        0 -> MealSlot.BREAKFAST
-                        1 -> MealSlot.LUNCH
-                        else -> MealSlot.DINNER
-                    }
                 }
 
-                ScaledMeal(
-                    id = "ai_meal_$index",
-                    name = meal.name,
-                    slot = slot,
-                    portionMultiplier = 1.0,
-                    portionLabel = "Porsi AI",
-                    calories = meal.calories,
-                    proteinGrams = meal.proteinGrams,
-                    carbsGrams = meal.carbsGrams,
-                    fatGrams = meal.fatGrams,
-                    prepMinutes = meal.prepMinutes,
-                    highlights = meal.highlights.ifEmpty { listOf("Resep AI") },
-                    scaledIngredients = meal.ingredients,
-                    instructions = meal.instructions
+                val resultPlan = RecommendedDayPlan(
+                    targetCalories = macroTarget.targetCalories,
+                    totalPlannedCalories = scaledMeals.sumOf { it.calories },
+                    totalProteinGrams = scaledMeals.sumOf { it.proteinGrams },
+                    totalCarbsGrams = scaledMeals.sumOf { it.carbsGrams },
+                    totalFatGrams = scaledMeals.sumOf { it.fatGrams },
+                    meals = scaledMeals
                 )
+
+                return Result.success(resultPlan)
+
+            } catch (e: HttpRequestTimeoutException) {
+                lastException = Exception("Koneksi ke Gemini AI timeout. Silakan periksa koneksi internet lalu coba lagi.")
+            } catch (e: ClientRequestException) {
+                val code = e.response.status.value
+                val errorDetail = try { e.response.body<String>() } catch (_: Exception) { "" }
+                lastException = Exception("Gagal terhubung ke Gemini AI (Status HTTP $code). $errorDetail")
+            } catch (e: Exception) {
+                val msg = e.message ?: ""
+                val friendlyMsg = if (msg.contains("Unable to resolve host", ignoreCase = true) ||
+                    msg.contains("No address associated", ignoreCase = true) ||
+                    msg.contains("ConnectException", ignoreCase = true) ||
+                    msg.contains("UnresolvedAddressException", ignoreCase = true)
+                ) {
+                    "Perangkat/emulator tidak terhubung ke internet. Pastikan koneksi internet aktif lalu klik 'Coba Lagi'."
+                } else {
+                    msg.ifBlank { "Gagal meracik menu makanan dengan Gemini AI." }
+                }
+                lastException = Exception(friendlyMsg)
             }
-
-            val resultPlan = RecommendedDayPlan(
-                targetCalories = macroTarget.targetCalories,
-                totalPlannedCalories = scaledMeals.sumOf { it.calories },
-                totalProteinGrams = scaledMeals.sumOf { it.proteinGrams },
-                totalCarbsGrams = scaledMeals.sumOf { it.carbsGrams },
-                totalFatGrams = scaledMeals.sumOf { it.fatGrams },
-                meals = scaledMeals
-            )
-
-            Result.success(resultPlan)
-
-        } catch (e: HttpRequestTimeoutException) {
-            Result.failure(Exception("Koneksi ke Gemini AI timeout. Silakan periksa koneksi internet lalu coba lagi."))
-        } catch (e: ClientRequestException) {
-            val code = e.response.status.value
-            Result.failure(Exception("Gagal terhubung ke Gemini AI (Status HTTP $code)."))
-        } catch (e: Exception) {
-            val msg = e.message ?: ""
-            val friendlyMsg = if (msg.contains("Unable to resolve host", ignoreCase = true) ||
-                msg.contains("No address associated", ignoreCase = true) ||
-                msg.contains("ConnectException", ignoreCase = true) ||
-                msg.contains("UnresolvedAddressException", ignoreCase = true)
-            ) {
-                "Perangkat/emulator tidak terhubung ke internet. Pastikan koneksi internet aktif lalu klik 'Coba Lagi'."
-            } else {
-                msg.ifBlank { "Gagal meracik menu makanan dengan Gemini AI." }
-            }
-            Result.failure(Exception(friendlyMsg))
         }
+
+        return Result.failure(lastException ?: Exception("Gagal terhubung ke Gemini AI."))
     }
 }
