@@ -73,7 +73,8 @@ data class AiMealDto(
     val fatGrams: Int,
     val prepMinutes: Int,
     val highlights: List<String> = emptyList(),
-    val ingredients: List<String>
+    val ingredients: List<String> = emptyList(),
+    val instructions: List<String> = emptyList()
 )
 
 class GeminiMealPlannerService(
@@ -105,13 +106,47 @@ class GeminiMealPlannerService(
 
         return try {
             val promptText = """
-                Ahli gizi Indonesia. Buatkan 3 menu harian (${macroTarget.targetCalories} kcal: BREAKFAST, LUNCH, DINNER) untuk program ${goal.label} (Target P:${macroTarget.proteinGrams}g, K:${macroTarget.carbsGrams}g, L:${macroTarget.fatGrams}g).
-                Kembalikan HANYA format JSON valid seperti ini:
+                Kamu adalah chef meal prep & ahli gizi olahraga Indonesia.
+                Buatkan 3 racikan menu harian lengkap (BREAKFAST, LUNCH, DINNER) yang lezat beserta takaran bahan dan langkah-langkah cara memasaknya untuk program ${goal.label} (Target Harian: ${macroTarget.targetCalories} kcal, Protein: ${macroTarget.proteinGrams}g, Karbo: ${macroTarget.carbsGrams}g, Lemak: ${macroTarget.fatGrams}g).
+                Kembalikan HANYA JSON valid dengan struktur persis seperti berikut:
                 {
                   "meals": [
-                    {"slotName":"BREAKFAST","name":"Oatmeal Telur & Pisang","calories":450,"proteinGrams":25,"carbsGrams":50,"fatGrams":14,"prepMinutes":10,"highlights":["Tinggi Serat"],"ingredients":["60g oat","2 telur rebus"]},
-                    {"slotName":"LUNCH","name":"Ayam Bakar Nasi Merah","calories":750,"proteinGrams":45,"carbsGrams":75,"fatGrams":18,"prepMinutes":20,"highlights":["High Protein"],"ingredients":["150g dada ayam","150g nasi merah"]},
-                    {"slotName":"DINNER","name":"Ikan Dori Panggang","calories":600,"proteinGrams":35,"carbsGrams":55,"fatGrams":15,"prepMinutes":15,"highlights":["Low Fat"],"ingredients":["150g dori","150g kentang"]}
+                    {
+                      "slotName":"BREAKFAST",
+                      "name":"Oatmeal Telur & Pisang",
+                      "calories":450,
+                      "proteinGrams":25,
+                      "carbsGrams":50,
+                      "fatGrams":14,
+                      "prepMinutes":10,
+                      "highlights":["Tinggi Serat"],
+                      "ingredients":["60g oat","2 telur rebus","1 pisang"],
+                      "instructions":["Seduh oat dengan air/susu hangat.","Rebus telur 8 menit hingga matang.","Potong pisang dan sajikan bersama."]
+                    },
+                    {
+                      "slotName":"LUNCH",
+                      "name":"Ayam Bakar Nasi Merah",
+                      "calories":750,
+                      "proteinGrams":45,
+                      "carbsGrams":75,
+                      "fatGrams":18,
+                      "prepMinutes":20,
+                      "highlights":["High Protein"],
+                      "ingredients":["150g dada ayam","150g nasi merah","100g brokoli"],
+                      "instructions":["Bumbui ayam dengan kecap manis & lada.","Panggang ayam di pan antilengket.","Kukus brokoli dan sajikan dengan nasi merah."]
+                    },
+                    {
+                      "slotName":"DINNER",
+                      "name":"Ikan Dori Panggang Lemon",
+                      "calories":600,
+                      "proteinGrams":35,
+                      "carbsGrams":55,
+                      "fatGrams":15,
+                      "prepMinutes":15,
+                      "highlights":["Low Fat"],
+                      "ingredients":["150g dori","150g kentang rebus"],
+                      "instructions":["Lumuri ikan dori dengan perasan lemon & lada.","Panggang dori hingga matang merata.","Rebus kentang dan sajikan hangat."]
+                    }
                   ]
                 }
             """.trimIndent()
@@ -127,8 +162,7 @@ class GeminiMealPlannerService(
                 )
             )
 
-            // Menggunakan gemini-3.5-flash-lite untuk inferensi tercepat
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey.trim()}"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey.trim()}"
 
             val response: GeminiMealPlanResponse = client.post(url) {
                 contentType(ContentType.Application.Json)
@@ -176,7 +210,8 @@ class GeminiMealPlannerService(
                     fatGrams = meal.fatGrams,
                     prepMinutes = meal.prepMinutes,
                     highlights = meal.highlights.ifEmpty { listOf("Resep AI") },
-                    scaledIngredients = meal.ingredients
+                    scaledIngredients = meal.ingredients,
+                    instructions = meal.instructions
                 )
             }
 
