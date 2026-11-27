@@ -209,6 +209,7 @@ fun App() {
                     DailyRoutineScreen(
                         routineState = selectedState,
                         savedTemplates = savedTemplates,
+                        apiKey = GEMINI_API_KEY,
                         onUpdateRoutineState = { newState ->
                             updateRoutineForDate(dateIso, newState)
                         },

@@ -129,16 +129,19 @@ object MealRecommendationEngine {
 
     fun generateDayPlan(
         macroTarget: MacroTarget,
-        excludeIds: Set<String> = emptySet()
+        excludeIds: Set<String> = emptySet(),
+        randomize: Boolean = false
     ): RecommendedDayPlan {
         val scaledMeals = MealSlot.entries.mapNotNull { slot ->
             val slotTargetCal = (macroTarget.targetCalories * slot.calorieShare).roundToInt()
             val candidates = sampleRecipes.filter { it.slot == slot }
             val filtered = candidates.filterNot { it.id in excludeIds }.ifEmpty { candidates }
 
-            // Pilih resep yang paling mendekati target kalori slot tersebut
-            val chosen = filtered.minByOrNull { abs(it.baseCalories - slotTargetCal) }
-                ?: return@mapNotNull null
+            val chosen = if (randomize) {
+                filtered.shuffled().firstOrNull() ?: candidates.minByOrNull { abs(it.baseCalories - slotTargetCal) }
+            } else {
+                filtered.minByOrNull { abs(it.baseCalories - slotTargetCal) }
+            } ?: return@mapNotNull null
 
             val rawRatio = slotTargetCal.toDouble() / chosen.baseCalories.coerceAtLeast(1)
             val clampedRatio = rawRatio.coerceIn(0.6, 1.6)

@@ -16,36 +16,46 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mealprep.data.GeminiMealPlannerService
 import com.example.mealprep.data.SavedMealPlanTemplate
 import com.example.mealprep.domain.DailyMealCheck
 import com.example.mealprep.domain.DailyRoutineState
 import com.example.mealprep.domain.DateUtils
+import com.example.mealprep.domain.GoalType
+import com.example.mealprep.domain.MacroTarget
 import com.example.mealprep.domain.MealRecommendationEngine
 import com.example.mealprep.domain.RecommendedDayPlan
-import com.example.mealprep.domain.ScaledMeal
+import kotlinx.coroutines.launch
 
 @Composable
 fun DailyRoutineScreen(
     routineState: DailyRoutineState,
     savedTemplates: List<SavedMealPlanTemplate> = emptyList(),
+    apiKey: String = "",
     onUpdateRoutineState: (DailyRoutineState) -> Unit,
     onApplyPlanToDate: (String, RecommendedDayPlan) -> Unit,
     onOpenCalculator: () -> Unit,
     onOpenMealResult: () -> Unit,
     onBackToCalendar: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val plannerService = remember(apiKey) { GeminiMealPlannerService(apiKey = apiKey) }
+
     val macroTarget = routineState.macroTarget
+    val goal = routineState.activeGoal ?: GoalType.MAINTAIN
     val targetCalories = macroTarget?.targetCalories ?: 2000
 
     val calorieProgress = (routineState.consumedCalories.toFloat() / targetCalories.toFloat()).coerceIn(0f, 1f)
     val remainingCalories = targetCalories - routineState.consumedCalories
 
     var showChangeMenuDialog by remember { mutableStateOf(false) }
+    var isGeneratingAi by remember { mutableStateOf(false) }
+    var aiErrorMessage by remember { mutableStateOf<String?>(null) }
 
     // Dialog Pilihan / Ganti Menu untuk Tanggal Ini
     if (showChangeMenuDialog) {
         AlertDialog(
-            onDismissRequest = { showChangeMenuDialog = false },
+            onDismissRequest = { if (!isGeneratingAi) showChangeMenuDialog = false },
             title = {
                 Text(
                     text = "🍽️ Pilihan Menu untuk ${DateUtils.formatIndonesianDate(routineState.dateIso)}",
@@ -56,28 +66,84 @@ fun DailyRoutineScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Pilih menu AI baru atau gunakan menu tersimpan tanpa memakai token AI:",
+                        text = "Pilih cara menentukan menu untuk tanggal ini:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Pilihan 1: Generate Acak Menu Baru (Engine / AI)
-                    OutlinedButton(
+                    // Error Message jika AI gagal
+                    aiErrorMessage?.let { err ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                        ) {
+                            Text(
+                                text = err,
+                                modifier = Modifier.padding(10.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+
+                    // Pilihan 1: Generate Menu Baru dengan Gemini AI (Online)
+                    Button(
                         onClick = {
-                            val newPlan = if (macroTarget != null) {
-                                MealRecommendationEngine.generateDayPlan(macroTarget)
-                            } else {
-                                MealRecommendationEngine.generateDayPlan(
-                                    com.example.mealprep.domain.MacroTarget(2000, 2000, 120, 200, 50)
-                                )
+                            if (macroTarget == null) {
+                                onOpenCalculator()
+                                showChangeMenuDialog = false
+                                return@Button
                             }
-                            onApplyPlanToDate(routineState.dateIso, newPlan)
-                            showChangeMenuDialog = false
+                            isGeneratingAi = true
+                            aiErrorMessage = null
+
+                            scope.launch {
+                                val result = plannerService.generateAiMealPlan(goal, macroTarget)
+                                isGeneratingAi = false
+                                result
+                                    .onSuccess { aiPlan ->
+                                        onApplyPlanToDate(routineState.dateIso, aiPlan)
+                                        showChangeMenuDialog = false
+                                    }
+                                    .onFailure { err ->
+                                        aiErrorMessage = err.message ?: "Gagal meracik menu AI. Silakan gunakan variasi menu lokal."
+                                    }
+                            }
                         },
+                        enabled = !isGeneratingAi,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("🎲 Acak Menu Baru (Lokal Engine)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        if (isGeneratingAi) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Gemini AI Sedang Meracik...")
+                        } else {
+                            Text("✨ Racik Menu Baru dengan Gemini AI", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Pilihan 2: Acak Variasi Menu Lokal (0 Token AI)
+                    OutlinedButton(
+                        onClick = {
+                            val currentIds = routineState.mealChecks.map { it.meal.id }.toSet()
+                            val target = macroTarget ?: MacroTarget(2000, 2000, 120, 200, 50)
+                            val randomizedPlan = MealRecommendationEngine.generateDayPlan(
+                                macroTarget = target,
+                                excludeIds = currentIds,
+                                randomize = true
+                            )
+                            onApplyPlanToDate(routineState.dateIso, randomizedPlan)
+                            showChangeMenuDialog = false
+                        },
+                        enabled = !isGeneratingAi,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("🎲 Acak Variasi Menu (Lokal Engine)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -100,7 +166,7 @@ fun DailyRoutineScreen(
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
+                                        .clickable(enabled = !isGeneratingAi) {
                                             onApplyPlanToDate(routineState.dateIso, tpl.plan)
                                             showChangeMenuDialog = false
                                         },
@@ -129,7 +195,10 @@ fun DailyRoutineScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showChangeMenuDialog = false }) {
+                TextButton(
+                    onClick = { showChangeMenuDialog = false },
+                    enabled = !isGeneratingAi
+                ) {
                     Text("Tutup")
                 }
             }
@@ -584,7 +653,7 @@ private fun RoutineMealItemCard(
                 ) {
                     Checkbox(
                         checked = mealCheck.isCompleted,
-                        onToggle
+                        onCheckedChange = onToggle
                     )
                     Text(
                         text = meal.slot.label,
