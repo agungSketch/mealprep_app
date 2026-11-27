@@ -128,15 +128,16 @@ fun App() {
 
                 AppRoute.Home -> {
                     val achievedDaysCount = routineLogs.values.count { it.isDayGoalAchieved }
+                    val activeDaysCount = routineLogs.values.count { it.consumedCalories > 0 || it.waterIntakeMl > 0 }
 
                     HomeScreen(
                         activeGoal = latestGoal,
                         activeMacroTarget = latestMacroTarget,
                         todayCalories = currentTodayState.consumedCalories,
+                        todayProteinGrams = currentTodayState.consumedProtein,
                         todayWaterMl = currentTodayState.waterIntakeMl,
-                        completedMealsCount = currentTodayState.completedMealsCount,
-                        totalMealsCount = currentTodayState.mealChecks.size.coerceAtLeast(3),
-                        achievedDaysCount = achievedDaysCount,
+                        weeklyActiveDays = activeDaysCount.coerceAtLeast(1),
+                        weeklyOnTrackDays = achievedDaysCount.coerceAtLeast(1),
                         onOpenCalculator = { currentRoute = AppRoute.Calculator },
                         onOpenMealResult = {
                             val goal = latestGoal
@@ -149,7 +150,8 @@ fun App() {
                         },
                         onOpenJournalCalendar = { currentRoute = AppRoute.RoutineCalendar },
                         onOpenTodayJournal = { currentRoute = AppRoute.DailyRoutine(dateIso = todayIso) },
-                        onOpenAiScanner = { currentRoute = AppRoute.AiScanner }
+                        onOpenAiScanner = { currentRoute = AppRoute.AiScanner },
+                        onOpenIngredientRecipe = { currentRoute = AppRoute.AiScanner }
                     )
                 }
 

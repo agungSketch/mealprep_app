@@ -1,7 +1,9 @@
 package com.example.mealprep.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -15,22 +17,38 @@ import androidx.compose.ui.unit.sp
 import com.example.mealprep.domain.GoalType
 import com.example.mealprep.domain.MacroTarget
 
+data class RecentActivityItem(
+    val id: String,
+    val tag: String,
+    val title: String,
+    val calories: Int,
+    val proteinGrams: Int,
+    val subtitle: String
+)
+
 @Composable
 fun HomeScreen(
     activeGoal: GoalType?,
     activeMacroTarget: MacroTarget?,
     todayCalories: Int = 0,
+    todayProteinGrams: Int = 0,
     todayWaterMl: Int = 0,
-    completedMealsCount: Int = 0,
-    totalMealsCount: Int = 3,
-    achievedDaysCount: Int = 0,
+    weeklyActiveDays: Int = 1,
+    weeklyOnTrackDays: Int = 1,
+    recentActivities: List<RecentActivityItem> = emptyList(),
     onOpenCalculator: () -> Unit,
     onOpenMealResult: () -> Unit,
     onOpenJournalCalendar: () -> Unit,
     onOpenTodayJournal: () -> Unit,
-    onOpenAiScanner: () -> Unit
+    onOpenAiScanner: () -> Unit,
+    onOpenIngredientRecipe: () -> Unit = onOpenAiScanner
 ) {
     var showShareModal by remember { mutableStateOf(false) }
+
+    val targetCal = activeMacroTarget?.targetCalories ?: 1900
+    val targetPro = activeMacroTarget?.proteinGrams ?: 140
+    val calProgress = (todayCalories.toFloat() / targetCal.coerceAtLeast(1)).coerceIn(0f, 1f)
+    val proProgress = (todayProteinGrams.toFloat() / targetPro.coerceAtLeast(1)).coerceIn(0f, 1f)
 
     // Dialog Share Preview Pencapaian ala Strava
     if (showShareModal) {
@@ -60,7 +78,6 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Kartu Preview Share Ala Strava / Fitness Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
@@ -113,7 +130,7 @@ fun HomeScreen(
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text("Asupan Kalori", style = MaterialTheme.typography.labelSmall)
                                     Text(
-                                        "$todayCalories / ${activeMacroTarget?.targetCalories ?: 2000} kcal",
+                                        "$todayCalories / $targetCal kcal",
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -125,7 +142,7 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Meal: $completedMealsCount/$totalMealsCount Selesai", style = MaterialTheme.typography.bodySmall)
+                                Text("Protein: ${todayProteinGrams}g / ${targetPro}g", style = MaterialTheme.typography.bodySmall)
                                 Text("Air: $todayWaterMl ml", style = MaterialTheme.typography.bodySmall)
                             }
 
@@ -158,249 +175,329 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 20.dp)
+            .padding(horizontal = 16.dp, vertical = 18.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Top Header dengan indikator pencapaian
+        // Top Header: Avatar + Brand + Tombol Bagikan
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "GRAMPULSE AI",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Halo, siap jaga performa hari ini?",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(38.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "GP",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        text = "GRAMPULSE AI",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = activeGoal?.label ?: "Belum Set Target",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            if (achievedDaysCount > 0) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.secondaryContainer
+            FilledTonalButton(
+                onClick = { showShareModal = true },
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Bagikan", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        // Ringkasan Mingguan (ala "My week")
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "🏆 $achievedDaysCount Hari On-Track",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        text = "Minggu Ini",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
+                    TextButton(
+                        onClick = onOpenJournalCalendar,
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                    ) {
+                        Text("Buka Kalender", fontSize = 12.sp)
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    WeeklyStatColumn(label = "Hari Aktif", value = "$weeklyActiveDays hr")
+                    WeeklyStatColumn(label = "On-Track", value = "$weeklyOnTrackDays hr")
+                    WeeklyStatColumn(label = "Air Hari Ini", value = "${todayWaterMl} ml")
                 }
             }
         }
 
-        // 2. Hero Card: Target & Progres Harian + Tombol Share ala Strava
-        Card(
+        // Dua Kartu Metrik Utama (Kalori & Protein)
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            MetricHighlightCard(
+                modifier = Modifier.weight(1f),
+                title = "Kalori Masuk",
+                mainValue = "$todayCalories",
+                subValue = "Target $targetCal kcal",
+                progress = calProgress,
+                onClick = if (activeMacroTarget != null) onOpenMealResult else onOpenCalculator
+            )
+
+            MetricHighlightCard(
+                modifier = Modifier.weight(1f),
+                title = "Protein",
+                mainValue = "${todayProteinGrams}g",
+                subValue = "Target ${targetPro}g",
+                progress = proProgress,
+                onClick = onOpenTodayJournal
+            )
+        }
+
+        // Banner Quick Action (Scan Bahan -> Resep / Kalkulator)
+        Surface(
+            onClick = if (activeMacroTarget != null) onOpenIngredientRecipe else onOpenCalculator,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (activeMacroTarget != null && activeGoal != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = activeGoal.label,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        TextButton(
-                            onClick = onOpenMealResult,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                        ) {
-                            Text("Menu Dinamis", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
                     Text(
-                        text = "${activeMacroTarget.targetCalories} kcal",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-
-                    Text(
-                        text = "Protein ${activeMacroTarget.proteinGrams}g  •  Karbo ${activeMacroTarget.carbsGrams}g  •  Lemak ${activeMacroTarget.fatGrams}g",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                    )
-
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.14f)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "Progres Hari Ini",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
-                            )
-                            Text(
-                                text = "$todayCalories kcal  •  $completedMealsCount/$totalMealsCount Meal  •  $todayWaterMl ml",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Button(
-                            onClick = onOpenTodayJournal,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Jurnal Hari Ini", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
-
-                        FilledTonalButton(
-                            onClick = { showShareModal = true },
-                            modifier = Modifier.height(44.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Bagikan", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                } else {
-                    Text(
-                        text = "Mulai Hitung Target Nutrisi",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = if (activeMacroTarget != null) {
+                            "Foto Bahan Makanan → Resep"
+                        } else {
+                            "Hitung Kalori & Makro Pertamamu"
+                        },
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = "Hitung kebutuhan kalori dan protein harian sesuai target latihanmu untuk membuka saran menu porsi dinamis dan jurnal harian.",
+                        text = if (activeMacroTarget != null) {
+                            "Racik menu tinggi protein sesuai target $targetCal kcal."
+                        } else {
+                            "Tentukan BMR, TDEE, dan target Cutting / Maintain / Bulk."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     )
-                    Button(
-                        onClick = onOpenCalculator,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(46.dp),
-                        shape = RoundedCornerShape(12.dp)
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = if (activeMacroTarget != null) onOpenIngredientRecipe else onOpenCalculator,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = if (activeMacroTarget != null) "Racik" else "Mulai",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        // Log & Menu Terbaru (ala "Recent activities")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Aktivitas & Menu Terbaru",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            TextButton(
+                onClick = onOpenAiScanner,
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+            ) {
+                Text("+ Scan AI", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        val itemsToShow = recentActivities.ifEmpty {
+            listOf(
+                RecentActivityItem(
+                    id = "default_1",
+                    tag = "MEAL PLAN",
+                    title = "Menu Porsi Dinamis",
+                    calories = targetCal,
+                    proteinGrams = targetPro,
+                    subtitle = "Sesuai target harianmu"
+                ),
+                RecentActivityItem(
+                    id = "default_2",
+                    tag = "AI SCANNER",
+                    title = "Cek Kalori Foto",
+                    calories = 0,
+                    proteinGrams = 0,
+                    subtitle = "Scan makanan matang / bahan"
+                )
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            itemsToShow.forEach { item ->
+                Card(
+                    modifier = Modifier.width(230.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("Hitung Kalori Sekarang", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = item.tag,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = item.subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                        if (item.calories > 0) {
+                            Text(
+                                text = "${item.calories} kcal • P ${item.proteinGrams}g",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // 3. Navigasi Fitur Utama (lebih bersih, tanpa tombol ganda per kartu)
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun WeeklyStatColumn(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-            text = "Eksplorasi Fitur",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-
-        HomeMenuRowCard(
-            badge = "01",
-            title = "Kalkulator Kalori & Saran Menu",
-            subtitle = "Hitung TDEE, target makro, dan porsi resep otomatis",
-            onClick = onOpenCalculator
-        )
-
-        HomeMenuRowCard(
-            badge = "02",
-            title = "Kalender & Rutinitas Harian",
-            subtitle = "Riwayat kalori bulanan, checklist makan, air & kebiasaan",
-            onClick = onOpenJournalCalendar
-        )
-
-        HomeMenuRowCard(
-            badge = "03",
-            title = "AI Food & Recipe Scanner",
-            subtitle = "Scan makanan matang atau foto bahan mentah jadi resep",
-            onClick = onOpenAiScanner
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
     }
 }
 
 @Composable
-private fun HomeMenuRowCard(
-    badge: String,
+private fun MetricHighlightCard(
+    modifier: Modifier = Modifier,
     title: String,
-    subtitle: String,
+    mainValue: String,
+    subValue: String,
+    progress: Float,
     onClick: () -> Unit
 ) {
-    Surface(
+    Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+        )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(38.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = badge,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
             Text(
-                text = "›",
-                style = MaterialTheme.typography.titleLarge,
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = mainValue,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                text = subValue,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp),
+                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
             )
         }
     }
