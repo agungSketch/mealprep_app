@@ -65,7 +65,7 @@ fun App() {
             )
         }
 
-        val todayIso = "2026-11-17"
+        val todayIso = getTodayDateIso()
 
         fun getRoutineForDate(dateIso: String): DailyRoutineState {
             return routineLogs[dateIso] ?: DailyRoutineState(

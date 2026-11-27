@@ -8,5 +8,7 @@ interface Platform {
 
 expect fun getPlatform(): Platform
 
+expect fun getTodayDateIso(): String
+
 @Composable
 expect fun rememberAppSettingsLauncher(): () -> Unit

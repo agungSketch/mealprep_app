@@ -1,5 +1,6 @@
 package com.example.mealprep.domain
 
+import com.example.mealprep.getTodayDateIso
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -19,7 +20,7 @@ data class DailyHabit(
 
 @Serializable
 data class DailyRoutineState(
-    val dateIso: String = "2026-11-17",
+    val dateIso: String = getTodayDateIso(),
     val activeGoal: GoalType? = null,
     val macroTarget: MacroTarget? = null,
     val activePlan: RecommendedDayPlan? = null,
@@ -143,7 +144,7 @@ object DateUtils {
         return (h + 5) % 7
     }
 
-    fun generateMonthGrid(year: Int, month: Int, todayIso: String = "2026-11-17"): List<CalendarDayInfo> {
+    fun generateMonthGrid(year: Int, month: Int, todayIso: String = getTodayDateIso()): List<CalendarDayInfo> {
         val firstDayOfWeek = getFirstDayOfWeek(year, month)
         val daysInMonth = getDaysInMonth(year, month)
 

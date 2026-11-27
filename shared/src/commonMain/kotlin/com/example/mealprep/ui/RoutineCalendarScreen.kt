@@ -21,11 +21,12 @@ import androidx.compose.ui.unit.sp
 import com.example.mealprep.domain.CalendarDayInfo
 import com.example.mealprep.domain.DailyRoutineState
 import com.example.mealprep.domain.DateUtils
+import com.example.mealprep.getTodayDateIso
 
 @Composable
 fun RoutineCalendarScreen(
     routineLogs: Map<String, DailyRoutineState>,
-    todayIso: String = "2026-11-17",
+    todayIso: String = getTodayDateIso(),
     onSelectDate: (String) -> Unit,
     onBackToHome: () -> Unit
 ) {

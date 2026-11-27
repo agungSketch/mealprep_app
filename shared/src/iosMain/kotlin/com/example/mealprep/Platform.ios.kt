@@ -1,6 +1,8 @@
 package com.example.mealprep
 
 import androidx.compose.runtime.Composable
+import platform.Foundation.NSDate
+import platform.Foundation.NSDateFormatter
 import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationOpenSettingsURLString
@@ -11,6 +13,12 @@ class IOSPlatform: Platform {
 }
 
 actual fun getPlatform(): Platform = IOSPlatform()
+
+actual fun getTodayDateIso(): String {
+    val formatter = NSDateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.stringFromDate(NSDate())
+}
 
 @Composable
 actual fun rememberAppSettingsLauncher(): () -> Unit {
