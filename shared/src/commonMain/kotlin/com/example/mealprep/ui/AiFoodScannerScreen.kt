@@ -17,7 +17,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mealprep.data.FoodScanResult
 import com.example.mealprep.data.GeminiFoodScannerService
+import com.example.mealprep.data.RawIngredientScanResult
+import com.example.mealprep.domain.GoalType
 import com.example.mealprep.domain.MacroTarget
+import com.example.mealprep.domain.RecommendedDayPlan
+import com.example.mealprep.domain.ScaledMeal
 import com.example.mealprep.rememberAppSettingsLauncher
 import com.preat.peekaboo.image.picker.ResizeOptions
 import com.preat.peekaboo.image.picker.SelectionMode
@@ -27,10 +31,17 @@ import com.preat.peekaboo.ui.camera.rememberPeekabooCameraState
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.decodeToImageBitmap
 
+enum class ScanMode {
+    COOKED_FOOD,      // Makanan Matang
+    RAW_INGREDIENTS   // Bahan Baku Mentah -> Racik Menu Harian
+}
+
 @Composable
 fun AiFoodScannerScreen(
     apiKey: String = "",
+    activeGoal: GoalType? = null,
     activeMacroTarget: MacroTarget? = null,
+    onApplyPlanAndOpenRoutine: ((RecommendedDayPlan) -> Unit)? = null,
     onBackToHome: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -38,17 +49,20 @@ fun AiFoodScannerScreen(
     val scannerService = remember(userApiKey) { GeminiFoodScannerService(apiKey = userApiKey) }
     val openAppSettings = rememberAppSettingsLauncher()
 
+    var scanMode by remember { mutableStateOf(ScanMode.RAW_INGREDIENTS) }
     var showCamera by remember { mutableStateOf(false) }
     var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
-    var scanResult by remember { mutableStateOf<FoodScanResult?>(null) }
+    var cookedScanResult by remember { mutableStateOf<FoodScanResult?>(null) }
+    var rawScanResult by remember { mutableStateOf<RawIngredientScanResult?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val cameraState = rememberPeekabooCameraState(
         onCapture = { bytes ->
             if (bytes != null) {
                 selectedImageBytes = bytes
-                scanResult = null
+                cookedScanResult = null
+                rawScanResult = null
                 errorMessage = null
             }
             showCamera = false
@@ -68,13 +82,14 @@ fun AiFoodScannerScreen(
             if (bytes != null) {
                 selectedImageBytes = bytes
                 showCamera = false
-                scanResult = null
+                cookedScanResult = null
+                rawScanResult = null
                 errorMessage = null
             }
         }
     )
 
-    // Mode Kamera Aktif (Full-screen / Area Kamera)
+    // Mode Kamera Full-Screen / Preview Area
     if (showCamera) {
         Column(
             modifier = Modifier
@@ -89,7 +104,7 @@ fun AiFoodScannerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "📸 Foto Makanan",
+                    text = if (scanMode == ScanMode.RAW_INGREDIENTS) "📸 Foto Bahan Mentah" else "📸 Foto Makanan Matang",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -122,7 +137,7 @@ fun AiFoodScannerScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Aktifkan izin kamera di Pengaturan HP untuk dapat mengambil foto secara langsung.",
+                            text = "Aktifkan izin kamera di Pengaturan HP untuk dapat mengambil foto bahan makanan secara langsung.",
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -151,7 +166,7 @@ fun AiFoodScannerScreen(
         return
     }
 
-    // Halaman Utama Scanner & Hasil Analisis
+    // Halaman Utama Scanner
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -166,7 +181,7 @@ fun AiFoodScannerScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "📸 AI Food Scanner",
+                text = "📸 AI Food & Recipe Scanner",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -175,17 +190,46 @@ fun AiFoodScannerScreen(
             }
         }
 
+        // Segmented Control Switch Mode (Bahan Mentah vs Makanan Matang)
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            SegmentedButton(
+                selected = scanMode == ScanMode.RAW_INGREDIENTS,
+                onClick = {
+                    scanMode = ScanMode.RAW_INGREDIENTS
+                    errorMessage = null
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+            ) {
+                Text("🥦 Bahan Mentah AI", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            SegmentedButton(
+                selected = scanMode == ScanMode.COOKED_FOOD,
+                onClick = {
+                    scanMode = ScanMode.COOKED_FOOD
+                    errorMessage = null
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+            ) {
+                Text("🍽️ Makanan Matang", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
         Text(
-            text = "Jepret makanan langsung pakai kamera atau pilih dari galeri untuk estimasi kalori dan makro.",
+            text = if (scanMode == ScanMode.RAW_INGREDIENTS)
+                "Foto bahan mentah di dapurmu (sayur, buah, daging, ikan, ayam, telur). AI akan mendeteksi bahan & meracik menu harian sehat."
+            else
+                "Foto makanan matang atau siap saji untuk mengestimasi kalori dan makronutrisinya secara instan.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        // Preview Foto
+        // Preview Area Foto
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp),
+                .height(210.dp),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
@@ -197,7 +241,7 @@ fun AiFoodScannerScreen(
             if (imageBitmap != null) {
                 Image(
                     bitmap = imageBitmap,
-                    contentDescription = "Preview makanan",
+                    contentDescription = "Preview foto bahan mentah / makanan",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
@@ -211,15 +255,18 @@ fun AiFoodScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = "🍽️", fontSize = 48.sp)
+                    Text(
+                        text = if (scanMode == ScanMode.RAW_INGREDIENTS) "🥦🥩🍎" else "🍽️",
+                        fontSize = 44.sp
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Belum ada foto makanan",
+                        text = if (scanMode == ScanMode.RAW_INGREDIENTS) "Belum ada foto bahan mentah" else "Belum ada foto makanan",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Gunakan tombol Kamera di bawah untuk memfoto makanan",
+                        text = "Ambil foto bahan di meja dapur atau pilih dari galeri",
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -228,7 +275,7 @@ fun AiFoodScannerScreen(
             }
         }
 
-        // Tombol Kamera & Galeri
+        // Tombol Buka Kamera & Galeri
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -254,24 +301,36 @@ fun AiFoodScannerScreen(
             }
         }
 
-        // Tombol Analisis Gemini AI
+        // Tombol Proses AI Gemini
         if (selectedImageBytes != null) {
             Button(
                 onClick = {
-                    val imageBytes = selectedImageBytes ?: return@Button
+                    val bytes = selectedImageBytes ?: return@Button
                     isAnalyzing = true
                     errorMessage = null
-                    scanResult = null
+                    cookedScanResult = null
+                    rawScanResult = null
 
                     scope.launch {
-                        val result = scannerService.analyzeFoodImage(
-                            imageBytes = imageBytes,
-                            mimeType = "image/jpeg"
-                        )
-                        isAnalyzing = false
-                        result
-                            .onSuccess { scanResult = it }
-                            .onFailure { errorMessage = it.message ?: "Gagal menganalisis foto makanan." }
+                        if (scanMode == ScanMode.RAW_INGREDIENTS) {
+                            val result = scannerService.analyzeRawIngredientsAndGeneratePlan(
+                                imageBytes = bytes,
+                                goal = activeGoal,
+                                macroTarget = activeMacroTarget
+                            )
+                            isAnalyzing = false
+                            result
+                                .onSuccess { rawScanResult = it }
+                                .onFailure { errorMessage = it.message ?: "Gagal memproses foto bahan mentah." }
+                        } else {
+                            val result = scannerService.analyzeFoodImage(
+                                imageBytes = bytes
+                            )
+                            isAnalyzing = false
+                            result
+                                .onSuccess { cookedScanResult = it }
+                                .onFailure { errorMessage = it.message ?: "Gagal menganalisis foto makanan." }
+                        }
                     }
                 },
                 enabled = !isAnalyzing,
@@ -287,20 +346,30 @@ fun AiFoodScannerScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text("Menganalisis dengan Gemini AI...")
+                    Text(
+                        text = if (scanMode == ScanMode.RAW_INGREDIENTS)
+                            "Mendeteksi bahan & meracik menu AI..."
+                        else
+                            "Menganalisis kalori dengan Gemini AI..."
+                    )
                 } else {
-                    Text("Analisis Kalori & Makro", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = if (scanMode == ScanMode.RAW_INGREDIENTS)
+                            "✨ Olah Bahan Mentah Jadi Menu AI"
+                        else
+                            "Analisis Kalori Makanan Matang",
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
 
+        // Pesan Error jika ada
         errorMessage?.let { err ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
             ) {
                 Text(
                     text = err,
@@ -311,13 +380,85 @@ fun AiFoodScannerScreen(
             }
         }
 
-        scanResult?.let { res ->
+        // Hasil Scan MODE 2: Bahan Mentah -> Day Plan
+        rawScanResult?.let { rawResult ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "🥦 Bahan Mentah Terdeteksi",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
+                    // Badges Bahan Terdeteksi
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        rawResult.detectedIngredients.forEach { ing ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = ing,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = rawResult.chefNote,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+
+                    Text(
+                        text = "🍽️ Menu Olahan Harian AI (${rawResult.dayPlan.totalPlannedCalories} kcal)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
+                    rawResult.dayPlan.meals.forEach { meal ->
+                        RawIngredientMealCard(meal = meal)
+                    }
+
+                    if (onApplyPlanAndOpenRoutine != null) {
+                        Button(
+                            onClick = { onApplyPlanAndOpenRoutine(rawResult.dayPlan) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("📅 Gunakan Menu Ini ke Daily Routine", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Hasil Scan MODE 1: Makanan Matang
+        cookedScanResult?.let { res ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -353,21 +494,46 @@ fun AiFoodScannerScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     )
-
-                    if (activeMacroTarget != null) {
-                        val remaining = activeMacroTarget.targetCalories - res.calories
-                        Text(
-                            text = "Sisa target kalori harianmu (${activeMacroTarget.targetCalories} kcal): $remaining kcal",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun RawIngredientMealCard(meal: ScaledMeal) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = meal.slot.label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = meal.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "${meal.calories} kcal • P ${meal.proteinGrams}g • K ${meal.carbsGrams}g • L ${meal.fatGrams}g",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Bahan: ${meal.scaledIngredients.joinToString(", ")}",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 

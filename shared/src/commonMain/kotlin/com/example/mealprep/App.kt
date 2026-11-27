@@ -139,7 +139,20 @@ fun App() {
                 AppRoute.AiScanner -> {
                     AiFoodScannerScreen(
                         apiKey = GEMINI_API_KEY,
+                        activeGoal = latestGoal,
                         activeMacroTarget = latestMacroTarget,
+                        onApplyPlanAndOpenRoutine = { plan ->
+                            val goal = latestGoal ?: GoalType.MAINTAIN
+                            val target = latestMacroTarget ?: MacroTarget(
+                                tdeeCalories = plan.targetCalories,
+                                targetCalories = plan.targetCalories,
+                                proteinGrams = plan.totalProteinGrams,
+                                carbsGrams = plan.totalCarbsGrams,
+                                fatGrams = plan.totalFatGrams
+                            )
+                            applyPlanToRoutine(goal, target, plan)
+                            currentRoute = AppRoute.RoutineCalendar
+                        },
                         onBackToHome = { currentRoute = AppRoute.Home }
                     )
                 }
