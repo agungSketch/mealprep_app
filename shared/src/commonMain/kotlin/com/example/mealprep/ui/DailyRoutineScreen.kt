@@ -1,5 +1,6 @@
 package com.example.mealprep.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -625,6 +626,7 @@ private fun RoutineMealItemCard(
     onToggle: (Boolean) -> Unit
 ) {
     val meal = mealCheck.meal
+    var expandedInstructions by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -693,6 +695,53 @@ private fun RoutineMealItemCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 40.dp)
             )
+
+            if (meal.scaledIngredients.isNotEmpty()) {
+                Text(
+                    text = "🥦 Bahan: ${meal.scaledIngredients.joinToString(", ")}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 40.dp)
+                )
+            }
+
+            if (meal.instructions.isNotEmpty()) {
+                TextButton(
+                    onClick = { expandedInstructions = !expandedInstructions },
+                    modifier = Modifier.padding(start = 32.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = if (expandedInstructions) "🔼 Sembunyikan Cara Memasak" else "👨‍🍳 Lihat Cara Memasak (${meal.instructions.size} Langkah)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                if (expandedInstructions) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Cara Pengolahan:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        meal.instructions.forEachIndexed { index, step ->
+                            Text(
+                                text = "${index + 1}. $step",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
