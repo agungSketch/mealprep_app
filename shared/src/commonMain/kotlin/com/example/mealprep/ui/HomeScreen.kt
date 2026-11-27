@@ -5,13 +5,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mealprep.domain.DailyRoutineState
 import com.example.mealprep.domain.GoalType
 import com.example.mealprep.domain.MacroTarget
 
@@ -19,232 +19,389 @@ import com.example.mealprep.domain.MacroTarget
 fun HomeScreen(
     activeGoal: GoalType?,
     activeMacroTarget: MacroTarget?,
-    routineState: DailyRoutineState? = null,
+    todayCalories: Int = 0,
+    todayWaterMl: Int = 0,
+    completedMealsCount: Int = 0,
+    totalMealsCount: Int = 3,
+    achievedDaysCount: Int = 0,
     onOpenCalculator: () -> Unit,
     onOpenMealResult: () -> Unit,
-    onOpenAiScanner: () -> Unit,
-    onOpenRoutineCalendar: () -> Unit
+    onOpenJournalCalendar: () -> Unit,
+    onOpenTodayJournal: () -> Unit,
+    onOpenAiScanner: () -> Unit
 ) {
+    var showShareModal by remember { mutableStateOf(false) }
+
+    // Dialog Share Preview Pencapaian ala Strava
+    if (showShareModal) {
+        AlertDialog(
+            onDismissRequest = { showShareModal = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("🏆", fontSize = 24.sp)
+                    Text(
+                        text = "Bagikan Pencapaian",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Preview Kartu Pencapaian Nutrisi (Siap Bagikan ke Story IG / WhatsApp):",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Kartu Preview Share Ala Strava / Fitness Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "GRAMPULSE AI",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "ON-TRACK 🏆",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            Text(
+                                text = "Progres Nutrisi Harian",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("Program", style = MaterialTheme.typography.labelSmall)
+                                    Text(
+                                        activeGoal?.label ?: "Program Sehat",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Asupan Kalori", style = MaterialTheme.typography.labelSmall)
+                                    Text(
+                                        "$todayCalories / ${activeMacroTarget?.targetCalories ?: 2000} kcal",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Meal: $completedMealsCount/$totalMealsCount Selesai", style = MaterialTheme.typography.bodySmall)
+                                Text("Air: $todayWaterMl ml", style = MaterialTheme.typography.bodySmall)
+                            }
+
+                            Text(
+                                text = "\"Konsistensi adalah kunci utama transformasi bentuk tubuh!\"",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showShareModal = false },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Tutup", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 24.dp)
+            .padding(horizontal = 16.dp, vertical = 20.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        // Header sambutan
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "Halo, Selamat Datang 👋",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "GramPulse AI",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Atur kebutuhan kalori harian, cek saran menu porsi dinamis, atau scan makananmu.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        // 1. Top Header dengan indikator pencapaian
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "GRAMPULSE AI",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Halo, siap jaga performa hari ini?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (achievedDaysCount > 0) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = "🏆 $achievedDaysCount Hari On-Track",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
         }
 
-        // Ringkasan target aktif jika user sudah pernah menghitung
-        if (activeMacroTarget != null && activeGoal != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+        // 2. Hero Card: Target & Progres Harian + Tombol Share ala Strava
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                if (activeMacroTarget != null && activeGoal != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Target Aktif • ${activeGoal.label}",
+                            text = activeGoal.label,
                             style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         TextButton(
                             onClick = onOpenMealResult,
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                         ) {
-                            Text("Lihat Menu", fontSize = 12.sp)
+                            Text("Menu Dinamis", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
                     Text(
-                        text = "${activeMacroTarget.targetCalories} kcal / hari",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
+                        text = "${activeMacroTarget.targetCalories} kcal",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Text(
-                        text = "Protein ${activeMacroTarget.proteinGrams}g • Karbo ${activeMacroTarget.carbsGrams}g • Lemak ${activeMacroTarget.fatGrams}g",
+                        text = "Protein ${activeMacroTarget.proteinGrams}g  •  Karbo ${activeMacroTarget.carbsGrams}g  •  Lemak ${activeMacroTarget.fatGrams}g",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     )
 
-                    routineState?.let { state ->
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 2.dp),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.14f)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = "Progres: ${state.consumedCalories} kcal • ${state.completedMealsCount} Meal • ${state.waterIntakeMl} ml Air",
+                                text = "Progres Hari Ini",
                                 style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+                            )
+                            Text(
+                                text = "$todayCalories kcal  •  $completedMealsCount/$totalMealsCount Meal  •  $todayWaterMl ml",
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            TextButton(
-                                onClick = onOpenRoutineCalendar,
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
-                            ) {
-                                Text("Jurnal ➔", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
                         }
                     }
-                }
-            }
-        } else {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = onOpenTodayJournal,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Jurnal Hari Ini", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        FilledTonalButton(
+                            onClick = { showShareModal = true },
+                            modifier = Modifier.height(44.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Bagikan", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                } else {
                     Text(
-                        text = "Belum ada target kalori tersimpan",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
+                        text = "Mulai Hitung Target Nutrisi",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = "Mulai dari Kalkulator Kalori untuk mendapatkan target harian dan saran menu katering yang disesuaikan.",
+                        text = "Hitung kebutuhan kalori dan protein harian sesuai target latihanmu untuk membuka saran menu porsi dinamis dan jurnal harian.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     )
+                    Button(
+                        onClick = onOpenCalculator,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Hitung Kalori Sekarang", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
 
+        // 3. Navigasi Fitur Utama (lebih bersih, tanpa tombol ganda per kartu)
         Text(
-            text = "Fitur Utama",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            text = "Eksplorasi Fitur",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        // Kartu fitur utama: Daily Routine & Jurnal Harian
-        FeatureActionCard(
-            emoji = "📅",
-            title = "Rutinitas & Jurnal Harian",
-            subtitle = "Pantau checklist makan harian, jurnal kalori, pencatat air minum 💧, dan kebiasaan sehat.",
-            buttonLabel = "Buka Kalender Jurnal",
-            onClick = onOpenRoutineCalendar
-        )
-
-        // Kartu fitur 1: Kalkulator Kalori & Saran Menu
-        FeatureActionCard(
-            emoji = "🥗",
+        HomeMenuRowCard(
+            badge = "01",
             title = "Kalkulator Kalori & Saran Menu",
-            subtitle = "Hitung TDEE, target kalori/makro, lalu lihat daftar resep & porsi dinamis harian.",
-            buttonLabel = "Buka Kalkulator",
-            isSecondary = true,
+            subtitle = "Hitung TDEE, target makro, dan porsi resep otomatis",
             onClick = onOpenCalculator
         )
 
-        // Kartu fitur 2: AI Food Scanner (tombol sendiri)
-        FeatureActionCard(
-            emoji = "📸",
-            title = "AI Food Scanner",
-            subtitle = "Foto makananmu untuk estimasi kalori dan makronutrisi secara instan.",
-            buttonLabel = "Scan Makanan AI",
-            isSecondary = true,
+        HomeMenuRowCard(
+            badge = "02",
+            title = "Kalender & Rutinitas Harian",
+            subtitle = "Riwayat kalori bulanan, checklist makan, air & kebiasaan",
+            onClick = onOpenJournalCalendar
+        )
+
+        HomeMenuRowCard(
+            badge = "03",
+            title = "AI Food & Recipe Scanner",
+            subtitle = "Scan makanan matang atau foto bahan mentah jadi resep",
             onClick = onOpenAiScanner
         )
     }
 }
 
 @Composable
-private fun FeatureActionCard(
-    emoji: String,
+private fun HomeMenuRowCard(
+    badge: String,
     title: String,
     subtitle: String,
-    buttonLabel: String,
-    isSecondary: Boolean = false,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        )
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Surface(
+                modifier = Modifier.size(38.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
             ) {
-                Text(text = emoji, fontSize = 32.sp)
-                Column(modifier = Modifier.weight(1f)) {
+                Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = badge,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
 
-            if (isSecondary) {
-                OutlinedButton(
-                    onClick = onClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(buttonLabel, fontWeight = FontWeight.SemiBold)
-                }
-            } else {
-                Button(
-                    onClick = onClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(buttonLabel, fontWeight = FontWeight.SemiBold)
-                }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+
+            Text(
+                text = "›",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
