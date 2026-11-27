@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mealprep.domain.DailyRoutineState
 import com.example.mealprep.domain.GoalType
 import com.example.mealprep.domain.MacroTarget
 
@@ -18,9 +19,11 @@ import com.example.mealprep.domain.MacroTarget
 fun HomeScreen(
     activeGoal: GoalType?,
     activeMacroTarget: MacroTarget?,
+    routineState: DailyRoutineState? = null,
     onOpenCalculator: () -> Unit,
     onOpenMealResult: () -> Unit,
-    onOpenAiScanner: () -> Unit
+    onOpenAiScanner: () -> Unit,
+    onOpenDailyRoutine: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -92,6 +95,31 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     )
+
+                    routineState?.let { state ->
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 2.dp),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Progres: ${state.consumedCalories} kcal • ${state.completedMealsCount} Meal • ${state.waterIntakeMl} ml Air",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            TextButton(
+                                onClick = onOpenDailyRoutine,
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                            ) {
+                                Text("Jurnal ➔", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
         } else {
@@ -126,12 +154,22 @@ fun HomeScreen(
             fontWeight = FontWeight.Bold
         )
 
+        // Kartu fitur utama: Daily Routine & Jurnal Harian
+        FeatureActionCard(
+            emoji = "📅",
+            title = "Rutinitas & Jurnal Harian",
+            subtitle = "Pantau checklist makan harian, jurnal kalori, pencatat air minum 💧, dan kebiasaan sehat.",
+            buttonLabel = "Buka Rutinitas Harian",
+            onClick = onOpenDailyRoutine
+        )
+
         // Kartu fitur 1: Kalkulator Kalori & Saran Menu
         FeatureActionCard(
             emoji = "🥗",
             title = "Kalkulator Kalori & Saran Menu",
             subtitle = "Hitung TDEE, target kalori/makro, lalu lihat daftar resep & porsi dinamis harian.",
             buttonLabel = "Buka Kalkulator",
+            isSecondary = true,
             onClick = onOpenCalculator
         )
 

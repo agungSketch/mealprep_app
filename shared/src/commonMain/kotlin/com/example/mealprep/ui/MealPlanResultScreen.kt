@@ -25,7 +25,8 @@ fun MealPlanResultScreen(
     goal: GoalType,
     macroTarget: MacroTarget,
     apiKey: String = "",
-    onBackToCalculator: () -> Unit
+    onBackToCalculator: () -> Unit,
+    onOpenDailyRoutine: (RecommendedDayPlan) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var userApiKey by remember(apiKey) { mutableStateOf(apiKey) }
@@ -124,6 +125,17 @@ fun MealPlanResultScreen(
                     MacroItem(label = "Lemak", value = "${macroTarget.fatGrams}g")
                 }
             }
+        }
+
+        // Tombol Gunakan ke Daily Routine
+        Button(
+            onClick = { onOpenDailyRoutine(activePlan) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("📅 Mulai Jurnal Daily Routine", fontWeight = FontWeight.Bold)
         }
 
         // Banner Status Loading AI (Background)
