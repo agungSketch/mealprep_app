@@ -21,7 +21,8 @@ data class BaseMealRecipe(
     val baseFatGrams: Int,
     val prepMinutes: Int,
     val highlights: List<String>,
-    val baseIngredients: List<String>
+    val baseIngredients: List<String>,
+    val instructions: List<String> = emptyList()
 )
 
 @Serializable
@@ -37,7 +38,8 @@ data class ScaledMeal(
     val fatGrams: Int,
     val prepMinutes: Int,
     val highlights: List<String>,
-    val scaledIngredients: List<String>
+    val scaledIngredients: List<String>,
+    val instructions: List<String> = emptyList()
 )
 
 @Serializable
@@ -64,7 +66,12 @@ object MealRecommendationEngine {
             baseFatGrams = 16,
             prepMinutes = 10,
             highlights = listOf("Tinggi Serat", "Praktis Pagi"),
-            baseIngredients = listOf("60g rolled oat", "2 butir telur rebus", "1 buah pisang ambon", "200ml susu rendah lemak")
+            baseIngredients = listOf("60g rolled oat", "2 butir telur rebus", "1 buah pisang ambon", "200ml susu rendah lemak"),
+            instructions = listOf(
+                "Seduh rolled oat dengan susu rendah lemak hangat selama 3-5 menit.",
+                "Rebus telur hingga matang sedang (sekitar 7-8 menit), kupas kulitnya.",
+                "Potong pisang ambon menjadi irisan tipis dan sajikan di atas oatmeal."
+            )
         ),
         BaseMealRecipe(
             id = "m2",
@@ -76,7 +83,12 @@ object MealRecommendationEngine {
             baseFatGrams = 18,
             prepMinutes = 12,
             highlights = listOf("High Protein", "Vegetarian Friendly"),
-            baseIngredients = listOf("120g tahu putih", "2 butir telur", "2 lembar roti gandum utuh", "Daun bawang & lada")
+            baseIngredients = listOf("120g tahu putih", "2 butir telur", "2 lembar roti gandum utuh", "Daun bawang & lada"),
+            instructions = listOf(
+                "Hancurkan tahu putih dan kocok bersama 2 butir telur, lada, dan sedikit garam.",
+                "Tumis adonan tahu dan telur di teflon antilengket hingga matang bertekstur orak-arik.",
+                "Panggang roti gandum utuh dan sajikan bersama orak-arik tahu telur."
+            )
         ),
         BaseMealRecipe(
             id = "m3",
@@ -88,7 +100,11 @@ object MealRecommendationEngine {
             baseFatGrams = 14,
             prepMinutes = 8,
             highlights = listOf("Segar & Cepat", "Tinggi Protein"),
-            baseIngredients = listOf("1 scoop whey protein", "1/2 buah alpukat", "1 buah pisang dingin", "150ml susu almond")
+            baseIngredients = listOf("1 scoop whey protein", "1/2 buah alpukat", "1 buah pisang dingin", "150ml susu almond"),
+            instructions = listOf(
+                "Blender alpukat, pisang dingin, whey protein, dan susu almond hingga lembut.",
+                "Tuangkan ke dalam mangkuk dan tambahkan topping biji chia atau irisan buah jika ada."
+            )
         ),
         BaseMealRecipe(
             id = "m4",
@@ -100,7 +116,12 @@ object MealRecommendationEngine {
             baseFatGrams = 12,
             prepMinutes = 15,
             highlights = listOf("Sarapan Atlet", "Kenyang Lama"),
-            baseIngredients = listOf("100g dada ayam panggang", "150g ubi kuning kukus", "1 butir telur ceplok air", "Tomat ceri")
+            baseIngredients = listOf("100g dada ayam panggang", "150g ubi kuning kukus", "1 butir telur ceplok air", "Tomat ceri"),
+            instructions = listOf(
+                "Kukus ubi kuning hingga empuk dan potong-potong.",
+                "Panggang dada ayam dengan lada dan sedikit garam hingga matang kecokelatan.",
+                "Buat telur ceplok air (poached egg) dan sajikan bersama ubi dan tomat ceri segar."
+            )
         ),
 
         // LUNCH (Makan Siang)
@@ -114,7 +135,13 @@ object MealRecommendationEngine {
             baseFatGrams = 18,
             prepMinutes = 25,
             highlights = listOf("Meal Prep Favorit", "Low Fat"),
-            baseIngredients = listOf("160g dada ayam tanpa kulit", "130g nasi merah matang", "100g brokoli kukus", "1 sdt minyak zaitun")
+            baseIngredients = listOf("160g dada ayam tanpa kulit", "130g nasi merah matang", "100g brokoli kukus", "1 sdt minyak zaitun"),
+            instructions = listOf(
+                "Bumbui dada ayam dengan bawang putih, lada, garam, dan minyak zaitun.",
+                "Panggang dada ayam di teflon rata-rata 5-6 menit per sisi hingga matang sempurna.",
+                "Kukus brokoli segar selama 3-4 menit agar tetap renyah dan berwarna hijau terang.",
+                "Sajikan dada ayam panggang bersama nasi merah hangat dan brokoli kukus."
+            )
         ),
         BaseMealRecipe(
             id = "l2",
@@ -126,7 +153,13 @@ object MealRecommendationEngine {
             baseFatGrams = 19,
             prepMinutes = 30,
             highlights = listOf("Rasa Nusantara", "Kaya Omega-3"),
-            baseIngredients = listOf("150g ikan tongkol", "130g nasi cokelat matang", "90g buncis tumis ringan", "Bumbu pepes & daun pisang")
+            baseIngredients = listOf("150g ikan tongkol", "130g nasi cokelat matang", "90g buncis tumis ringan", "Bumbu pepes & daun pisang"),
+            instructions = listOf(
+                "Haluskan bumbu pepes (bawang merah, putih, kunyit, kemiri, cabai, dan daun kemangi).",
+                "Balurkan bumbu pada ikan tongkol, bungkus rapi dengan daun pisang.",
+                "Kukus pepes ikan selama 20 menit, lalu panggang sebentar agar aromanya keluar.",
+                "Tumis buncis ringan tanpa banyak minyak dan sajikan bersama nasi cokelat."
+            )
         ),
         BaseMealRecipe(
             id = "l3",
@@ -138,7 +171,12 @@ object MealRecommendationEngine {
             baseFatGrams = 16,
             prepMinutes = 20,
             highlights = listOf("Sate Sehat", "Rendah Minyak"),
-            baseIngredients = listOf("150g dada ayam fillet", "2 sdm bumbu kacang sangrai", "130g nasi merah", "Timun & bawang merah")
+            baseIngredients = listOf("150g dada ayam fillet", "2 sdm bumbu kacang sangrai", "130g nasi merah", "Timun & bawang merah"),
+            instructions = listOf(
+                "Potong dadu dada ayam, marinasi dengan sedikit kecap manis dan lada.",
+                "Panggang sate ayam di atas pan grill hingga matang keemasan.",
+                "Seduh bumbu kacang dengan air hangat dan siramkan secara tipis di atas sate."
+            )
         ),
         BaseMealRecipe(
             id = "l4",
@@ -150,7 +188,12 @@ object MealRecommendationEngine {
             baseFatGrams = 22,
             prepMinutes = 20,
             highlights = listOf("Kaya Lemak Sehat", "Omega-3 Tinggi"),
-            baseIngredients = listOf("140g fillet salmon", "180g kentang rebus", "100g salad selada & lemon", "1 sdt dressing zaitun")
+            baseIngredients = listOf("140g fillet salmon", "180g kentang rebus", "100g salad selada & lemon", "1 sdt dressing zaitun"),
+            instructions = listOf(
+                "Bumbui fillet salmon dengan garam, lada hitam, dan perasan lemon.",
+                "Panggang salmon bagian kulit terlebih dahulu selama 3-4 menit hingga garing, lalu balikkan.",
+                "Rebus kentang mini dan siapkan salad selada segar dengan air perasan lemon."
+            )
         ),
 
         // DINNER (Makan Malam)
@@ -164,7 +207,12 @@ object MealRecommendationEngine {
             baseFatGrams = 19,
             prepMinutes = 20,
             highlights = listOf("Ringan Malam Hari", "Gluten-Free"),
-            baseIngredients = listOf("160g fillet ikan dori", "180g kentang rebus", "75g edamame kupas", "Air perasan lemon & bawang putih")
+            baseIngredients = listOf("160g fillet ikan dori", "180g kentang rebus", "75g edamame kupas", "Air perasan lemon & bawang putih"),
+            instructions = listOf(
+                "Lumuri fillet ikan dori dengan bawang putih cincang, lada, dan perasan jeruk lemon.",
+                "Panggang ikan dori dengan sedikit minyak di teflon hingga warna putih matang merata.",
+                "Rebus kentang dan edamame sebagai pelengkap karbohidrat & serat malam hari."
+            )
         ),
         BaseMealRecipe(
             id = "d2",
@@ -176,7 +224,13 @@ object MealRecommendationEngine {
             baseFatGrams = 16,
             prepMinutes = 20,
             highlights = listOf("Wangi Kemangi", "Cocok Defisit"),
-            baseIngredients = listOf("150g dada ayam suwir", "110g nasi merah matang", "1 ikat kecil daun kemangi", "Cabai, bawang & kaldu jamur")
+            baseIngredients = listOf("150g dada ayam suwir", "110g nasi merah matang", "1 ikat kecil daun kemangi", "Cabai, bawang & kaldu jamur"),
+            instructions = listOf(
+                "Rebus dada ayam lalu suwir-suwir halus.",
+                "Tumis bawang putih, bawang merah, dan cabai cincang hingga harum.",
+                "Masukkan ayam suwir, tambahkan sedikit air dan kaldu jamur.",
+                "Sesaat sebelum diangkat, masukkan daun kemangi hingga layu dan harum."
+            )
         ),
         BaseMealRecipe(
             id = "d3",
@@ -188,7 +242,12 @@ object MealRecommendationEngine {
             baseFatGrams = 12,
             prepMinutes = 25,
             highlights = listOf("Sup Bening Segar", "Sangat Low Fat"),
-            baseIngredients = listOf("150g fillet ikan gurame", "100g tahu lembut", "100g oyong & jahe", "Daun bawang & seledri")
+            baseIngredients = listOf("150g fillet ikan gurame", "100g tahu lembut", "100g oyong & jahe", "Daun bawang & seledri"),
+            instructions = listOf(
+                "Didihkan air bersama geprekan jahe, bawang putih, dan daun salam.",
+                "Masukkan potongan ikan gurame dan tahu lembut, masak dengan api sedang.",
+                "Masukkan irisan oyong, garam, dan lada. Taburi daun bawang sebelum disajikan."
+            )
         ),
         BaseMealRecipe(
             id = "d4",
@@ -200,7 +259,12 @@ object MealRecommendationEngine {
             baseFatGrams = 18,
             prepMinutes = 18,
             highlights = listOf("Kaya Zat Besi", "Tinggi Protein"),
-            baseIngredients = listOf("140g daging sapi bagian has dalam (tenderloin)", "120g brokoli", "Saus lada hitam tipis", "100g nasi merah")
+            baseIngredients = listOf("140g daging sapi bagian has dalam (tenderloin)", "120g brokoli", "Saus lada hitam tipis", "100g nasi merah"),
+            instructions = listOf(
+                "Iris tipis daging sapi tenderloin sans lemak.",
+                "Tumis daging dengan sedikit minyak dan bawang putih cincang hingga berubah warna.",
+                "Masukkan saus lada hitam dan brokoli, aduk cepat selama 3-4 menit hingga brokoli matang renyah."
+            )
         )
     )
 
@@ -245,7 +309,8 @@ object MealRecommendationEngine {
                 fatGrams = scaledFat,
                 prepMinutes = chosen.prepMinutes,
                 highlights = chosen.highlights,
-                scaledIngredients = scaledIngredients
+                scaledIngredients = scaledIngredients,
+                instructions = chosen.instructions
             )
         }
 

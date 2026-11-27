@@ -55,7 +55,8 @@ private data class RawMealItem(
     val fatGrams: Int,
     val prepMinutes: Int = 15,
     val highlights: List<String> = emptyList(),
-    val ingredients: List<String> = emptyList()
+    val ingredients: List<String> = emptyList(),
+    val instructions: List<String> = emptyList()
 )
 
 // DTO Request & Response ke Gemini REST API
@@ -224,15 +225,48 @@ class GeminiFoodScannerService(
             val promptText = """
                 Kamu adalah Chef Ahli Gizi Indonesia. Analisis foto bahan makanan mentah ini (seperti sayuran, buah, ikan, daging, ayam, telur, dll).
                 1. Deteksi semua bahan mentah yang ada pada foto.
-                2. Olah bahan mentah tersebut menjadi 3 menu makanan harian (BREAKFAST, LUNCH, DINNER) yang lezat dan sehat untuk program $goalLabel (Target Harian: $targetCalories kcal, Protein: ${proteinTarget}g, Karbo: ${carbsTarget}g, Lemak: ${fatTarget}g).
+                2. Olah bahan mentah tersebut menjadi 3 menu makanan harian (BREAKFAST, LUNCH, DINNER) lengkap dengan langkah-langkah cara memasaknya yang lezat dan sehat untuk program $goalLabel (Target Harian: $targetCalories kcal, Protein: ${proteinTarget}g, Karbo: ${carbsTarget}g, Lemak: ${fatTarget}g).
                 Kembalikan HANYA format JSON valid seperti ini:
                 {
                   "detectedIngredients": ["150g dada ayam mentah", "100g brokoli", "2 butir telur"],
                   "chefNote": "Bahan mentah ini sangat kaya protein & serat, bagus untuk program sehat.",
                   "meals": [
-                    {"slotName":"BREAKFAST","name":"Oatmeal & Telur Rebus Brokoli","calories":450,"proteinGrams":25,"carbsGrams":50,"fatGrams":14,"prepMinutes":10,"highlights":["Tinggi Serat"],"ingredients":["2 butir telur","50g brokoli","50g oat"]},
-                    {"slotName":"LUNCH","name":"Tumis Ayam Brokoli Nasi Merah","calories":750,"proteinGrams":45,"carbsGrams":75,"fatGrams":18,"prepMinutes":20,"highlights":["High Protein"],"ingredients":["150g dada ayam mentah","100g brokoli","130g nasi merah"]},
-                    {"slotName":"DINNER","name":"Sup Ayam Bening & Sayuran","calories":550,"proteinGrams":35,"carbsGrams":55,"fatGrams":15,"prepMinutes":20,"highlights":["Rendah Lemak"],"ingredients":["100g dada ayam mentah","50g brokoli","bumbu sup"]}
+                    {
+                      "slotName":"BREAKFAST",
+                      "name":"Oatmeal & Telur Rebus Brokoli",
+                      "calories":450,
+                      "proteinGrams":25,
+                      "carbsGrams":50,
+                      "fatGrams":14,
+                      "prepMinutes":10,
+                      "highlights":["Tinggi Serat"],
+                      "ingredients":["2 butir telur","50g brokoli","50g oat"],
+                      "instructions":["Kukus brokoli selama 3 menit hingga empuk.","Rebus telur hingga matang sedang.","Sajikan bersama oat hangat."]
+                    },
+                    {
+                      "slotName":"LUNCH",
+                      "name":"Tumis Ayam Brokoli Nasi Merah",
+                      "calories":750,
+                      "proteinGrams":45,
+                      "carbsGrams":75,
+                      "fatGrams":18,
+                      "prepMinutes":20,
+                      "highlights":["High Protein"],
+                      "ingredients":["150g dada ayam mentah","100g brokoli","130g nasi merah"],
+                      "instructions":["Potong dada ayam mentah dadu dan bumbui lada & bawang putih.","Tumis ayam dengan 1 sdt minyak zaitun hingga putih matang.","Masukkan brokoli, aduk cepat 3 menit.","Sajikan bersama nasi merah hangat."]
+                    },
+                    {
+                      "slotName":"DINNER",
+                      "name":"Sup Ayam Bening & Sayuran",
+                      "calories":550,
+                      "proteinGrams":35,
+                      "carbsGrams":55,
+                      "fatGrams":15,
+                      "prepMinutes":20,
+                      "highlights":["Rendah Lemak"],
+                      "ingredients":["100g dada ayam mentah","50g brokoli","bumbu sup"],
+                      "instructions":["Rebus air bersama jahe dan bawang putih geprek hingga mendidih.","Masukkan potongan dada ayam, masak hingga empuk.","Masukkan brokoli dan daun bawang, beri sedikit kaldu jamur lalu angkat."]
+                    }
                   ]
                 }
             """.trimIndent()
@@ -299,7 +333,8 @@ class GeminiFoodScannerService(
                     fatGrams = raw.fatGrams,
                     prepMinutes = raw.prepMinutes,
                     highlights = raw.highlights.ifEmpty { listOf("Resep Bahan Mentah Foto") },
-                    scaledIngredients = raw.ingredients
+                    scaledIngredients = raw.ingredients,
+                    instructions = raw.instructions
                 )
             }
 

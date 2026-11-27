@@ -1,6 +1,7 @@
 package com.example.mealprep.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -504,6 +505,8 @@ fun AiFoodScannerScreen(
 
 @Composable
 private fun RawIngredientMealCard(meal: ScaledMeal) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -511,7 +514,7 @@ private fun RawIngredientMealCard(meal: ScaledMeal) {
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = meal.slot.label,
@@ -525,14 +528,51 @@ private fun RawIngredientMealCard(meal: ScaledMeal) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "${meal.calories} kcal • P ${meal.proteinGrams}g • K ${meal.carbsGrams}g • L ${meal.fatGrams}g",
+                text = "${meal.calories} kcal • P ${meal.proteinGrams}g • K ${meal.carbsGrams}g • L ${meal.fatGrams}g • ±${meal.prepMinutes}m",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Bahan: ${meal.scaledIngredients.joinToString(", ")}",
+                text = "🥦 Bahan: ${meal.scaledIngredients.joinToString(", ")}",
                 style = MaterialTheme.typography.bodySmall
             )
+
+            if (meal.instructions.isNotEmpty()) {
+                TextButton(
+                    onClick = { expanded = !expanded },
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = if (expanded) "🔼 Sembunyikan Cara Memasak" else "👨‍🍳 Lihat Cara Memasak (${meal.instructions.size} Langkah)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                if (expanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Cara Pengolahan:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        meal.instructions.forEachIndexed { index, step ->
+                            Text(
+                                text = "${index + 1}. $step",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
