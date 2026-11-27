@@ -53,6 +53,7 @@ data class RecommendedDayPlan(
 object MealRecommendationEngine {
 
     val sampleRecipes: List<BaseMealRecipe> = listOf(
+        // BREAKFAST (Sarapan)
         BaseMealRecipe(
             id = "m1",
             name = "Oatmeal Telur Rebus & Pisang",
@@ -78,6 +79,32 @@ object MealRecommendationEngine {
             baseIngredients = listOf("120g tahu putih", "2 butir telur", "2 lembar roti gandum utuh", "Daun bawang & lada")
         ),
         BaseMealRecipe(
+            id = "m3",
+            name = "Smoothie Bowl Alpukat, Pisang & Whey Protein",
+            slot = MealSlot.BREAKFAST,
+            baseCalories = 460,
+            baseProteinGrams = 30,
+            baseCarbsGrams = 48,
+            baseFatGrams = 14,
+            prepMinutes = 8,
+            highlights = listOf("Segar & Cepat", "Tinggi Protein"),
+            baseIngredients = listOf("1 scoop whey protein", "1/2 buah alpukat", "1 buah pisang dingin", "150ml susu almond")
+        ),
+        BaseMealRecipe(
+            id = "m4",
+            name = "Dada Ayam Panggang, Ubi Kukus & Telur",
+            slot = MealSlot.BREAKFAST,
+            baseCalories = 500,
+            baseProteinGrams = 36,
+            baseCarbsGrams = 52,
+            baseFatGrams = 12,
+            prepMinutes = 15,
+            highlights = listOf("Sarapan Atlet", "Kenyang Lama"),
+            baseIngredients = listOf("100g dada ayam panggang", "150g ubi kuning kukus", "1 butir telur ceplok air", "Tomat ceri")
+        ),
+
+        // LUNCH (Makan Siang)
+        BaseMealRecipe(
             id = "l1",
             name = "Grilled Chicken Breast, Nasi Merah & Brokoli",
             slot = MealSlot.LUNCH,
@@ -102,6 +129,32 @@ object MealRecommendationEngine {
             baseIngredients = listOf("150g ikan tongkol", "130g nasi cokelat matang", "90g buncis tumis ringan", "Bumbu pepes & daun pisang")
         ),
         BaseMealRecipe(
+            id = "l3",
+            name = "Sate Dada Ayam Bumbu Kacang Tipis & Nasi Merah",
+            slot = MealSlot.LUNCH,
+            baseCalories = 660,
+            baseProteinGrams = 45,
+            baseCarbsGrams = 70,
+            baseFatGrams = 16,
+            prepMinutes = 20,
+            highlights = listOf("Sate Sehat", "Rendah Minyak"),
+            baseIngredients = listOf("150g dada ayam fillet", "2 sdm bumbu kacang sangrai", "130g nasi merah", "Timun & bawang merah")
+        ),
+        BaseMealRecipe(
+            id = "l4",
+            name = "Salmon Panggang, Kentang Rebus & Salad Hijau",
+            slot = MealSlot.LUNCH,
+            baseCalories = 700,
+            baseProteinGrams = 44,
+            baseCarbsGrams = 60,
+            baseFatGrams = 22,
+            prepMinutes = 20,
+            highlights = listOf("Kaya Lemak Sehat", "Omega-3 Tinggi"),
+            baseIngredients = listOf("140g fillet salmon", "180g kentang rebus", "100g salad selada & lemon", "1 sdt dressing zaitun")
+        ),
+
+        // DINNER (Makan Malam)
+        BaseMealRecipe(
             id = "d1",
             name = "Dori Panggang Lemon, Kentang Rebus & Edamame",
             slot = MealSlot.DINNER,
@@ -124,6 +177,30 @@ object MealRecommendationEngine {
             prepMinutes = 20,
             highlights = listOf("Wangi Kemangi", "Cocok Defisit"),
             baseIngredients = listOf("150g dada ayam suwir", "110g nasi merah matang", "1 ikat kecil daun kemangi", "Cabai, bawang & kaldu jamur")
+        ),
+        BaseMealRecipe(
+            id = "d3",
+            name = "Sup Ikan Gurame Bening, Tahu & Sayur Oyong",
+            slot = MealSlot.DINNER,
+            baseCalories = 480,
+            baseProteinGrams = 36,
+            baseCarbsGrams = 42,
+            baseFatGrams = 12,
+            prepMinutes = 25,
+            highlights = listOf("Sup Bening Segar", "Sangat Low Fat"),
+            baseIngredients = listOf("150g fillet ikan gurame", "100g tahu lembut", "100g oyong & jahe", "Daun bawang & seledri")
+        ),
+        BaseMealRecipe(
+            id = "d4",
+            name = "Tumis Daging Sapi Lada Hitam Lean & Brokoli",
+            slot = MealSlot.DINNER,
+            baseCalories = 580,
+            baseProteinGrams = 42,
+            baseCarbsGrams = 46,
+            baseFatGrams = 18,
+            prepMinutes = 18,
+            highlights = listOf("Kaya Zat Besi", "Tinggi Protein"),
+            baseIngredients = listOf("140g daging sapi bagian has dalam (tenderloin)", "120g brokoli", "Saus lada hitam tipis", "100g nasi merah")
         )
     )
 

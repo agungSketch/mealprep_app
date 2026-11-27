@@ -96,13 +96,18 @@ fun App() {
             updateRoutineForDate(dateIso, updatedState)
 
             // Auto simpan ke pustaka template lokal agar bisa dipakai lagi tanpa token AI
-            val templateTitle = "Menu ${plan.meals.firstOrNull()?.name?.take(20) ?: "Sehat"} (${plan.totalPlannedCalories} kcal)"
+            val mealsKey = plan.meals.joinToString("-") { it.id }
+            val firstMealName = plan.meals.firstOrNull()?.name?.take(22) ?: "Sehat"
+            val templateTitle = "Menu $firstMealName (${plan.totalPlannedCalories} kcal)"
             val newTemplate = SavedMealPlanTemplate(
-                id = "tpl_${dateIso}_${plan.totalPlannedCalories}",
+                id = "tpl_${mealsKey}_${plan.totalPlannedCalories}",
                 title = templateTitle,
                 dateCreatedIso = dateIso,
                 plan = plan
             )
+            if (savedTemplates.none { it.id == newTemplate.id }) {
+                savedTemplates = savedTemplates + newTemplate
+            }
             if (savedTemplates.none { it.id == newTemplate.id }) {
                 savedTemplates = savedTemplates + newTemplate
             }
