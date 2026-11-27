@@ -170,12 +170,11 @@ class GeminiMealPlannerService(
         )
 
         val candidateUrls = listOf(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}",
+            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}",
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey.trim()}",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey.trim()}",
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey.trim()}",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey.trim()}",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey.trim()}",
-            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}"
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey.trim()}"
         )
 
         var lastException: Exception? = null
@@ -188,13 +187,10 @@ class GeminiMealPlannerService(
                 }.body()
 
                 if (response.error != null) {
-                    val errCode = response.error.code ?: 0
                     val errMsg = response.error.message ?: ""
-                    if (errCode == 404 || errMsg.contains("is not found", ignoreCase = true)) {
-                        lastException = Exception("Gemini AI Error ($errCode): $errMsg")
-                        continue
-                    }
-                    return Result.failure(Exception("Gemini AI Error: $errMsg"))
+                    lastException = Exception("Gemini AI Error: $errMsg")
+                    // Jika model padat (high demand) atau not found, lanjut coba model berikutnya
+                    continue
                 }
 
                 val rawJsonText = response.candidates
@@ -275,6 +271,13 @@ class GeminiMealPlannerService(
             }
         }
 
-        return Result.failure(lastException ?: Exception("Gagal terhubung ke Gemini AI."))
+        val finalErrorMsg = lastException?.message ?: ""
+        val friendlyMsg = if (finalErrorMsg.contains("high demand", ignoreCase = true) || finalErrorMsg.contains("overloaded", ignoreCase = true)) {
+            "Server Gemini AI sedang padat pengunjung. Silakan klik 'Coba Lagi' atau gunakan variasi menu lokal tanpa token."
+        } else {
+            finalErrorMsg.ifBlank { "Gagal meracik menu AI. Silakan coba lagi." }
+        }
+
+        return Result.failure(Exception(friendlyMsg))
     }
 }
