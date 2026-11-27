@@ -199,7 +199,17 @@ class GeminiFoodScannerService(
             }
             Result.failure(Exception(message))
         } catch (e: Exception) {
-            Result.failure(Exception(e.message ?: "Terjadi kesalahan saat menganalisis foto makanan."))
+            val msg = e.message ?: ""
+            val friendlyMsg = if (msg.contains("Unable to resolve host", ignoreCase = true) ||
+                msg.contains("No address associated", ignoreCase = true) ||
+                msg.contains("ConnectException", ignoreCase = true) ||
+                msg.contains("UnresolvedAddressException", ignoreCase = true)
+            ) {
+                "Perangkat/emulator tidak terhubung ke internet. Pastikan koneksi internet aktif lalu coba lagi."
+            } else {
+                msg.ifBlank { "Terjadi kesalahan saat menganalisis foto makanan." }
+            }
+            Result.failure(Exception(friendlyMsg))
         }
     }
 
@@ -356,7 +366,17 @@ class GeminiFoodScannerService(
             Result.success(result)
 
         } catch (e: Exception) {
-            Result.failure(Exception(e.message ?: "Gagal memproses foto bahan mentah."))
+            val msg = e.message ?: ""
+            val friendlyMsg = if (msg.contains("Unable to resolve host", ignoreCase = true) ||
+                msg.contains("No address associated", ignoreCase = true) ||
+                msg.contains("ConnectException", ignoreCase = true) ||
+                msg.contains("UnresolvedAddressException", ignoreCase = true)
+            ) {
+                "Perangkat/emulator tidak terhubung ke internet. Pastikan koneksi internet aktif lalu coba lagi."
+            } else {
+                msg.ifBlank { "Gagal memproses foto bahan mentah." }
+            }
+            Result.failure(Exception(friendlyMsg))
         }
     }
 }

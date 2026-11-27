@@ -192,12 +192,22 @@ class GeminiMealPlannerService(
             Result.success(resultPlan)
 
         } catch (e: HttpRequestTimeoutException) {
-            Result.failure(Exception("Koneksi ke Gemini AI timeout. Silakan coba lagi."))
+            Result.failure(Exception("Koneksi ke Gemini AI timeout. Silakan periksa koneksi internet lalu coba lagi."))
         } catch (e: ClientRequestException) {
             val code = e.response.status.value
             Result.failure(Exception("Gagal terhubung ke Gemini AI (Status HTTP $code)."))
         } catch (e: Exception) {
-            Result.failure(Exception(e.message ?: "Gagal membuat menu makanan dengan Gemini AI."))
+            val msg = e.message ?: ""
+            val friendlyMsg = if (msg.contains("Unable to resolve host", ignoreCase = true) ||
+                msg.contains("No address associated", ignoreCase = true) ||
+                msg.contains("ConnectException", ignoreCase = true) ||
+                msg.contains("UnresolvedAddressException", ignoreCase = true)
+            ) {
+                "Perangkat/emulator tidak terhubung ke internet. Pastikan koneksi internet aktif lalu klik 'Coba Lagi'."
+            } else {
+                msg.ifBlank { "Gagal meracik menu makanan dengan Gemini AI." }
+            }
+            Result.failure(Exception(friendlyMsg))
         }
     }
 }
