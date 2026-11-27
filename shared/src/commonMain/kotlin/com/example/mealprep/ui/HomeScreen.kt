@@ -23,7 +23,7 @@ fun HomeScreen(
     onOpenCalculator: () -> Unit,
     onOpenMealResult: () -> Unit,
     onOpenAiScanner: () -> Unit,
-    onOpenDailyRoutine: () -> Unit
+    onOpenRoutineCalendar: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -113,7 +113,7 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             TextButton(
-                                onClick = onOpenDailyRoutine,
+                                onClick = onOpenRoutineCalendar,
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
                             ) {
                                 Text("Jurnal ➔", fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -159,8 +159,8 @@ fun HomeScreen(
             emoji = "📅",
             title = "Rutinitas & Jurnal Harian",
             subtitle = "Pantau checklist makan harian, jurnal kalori, pencatat air minum 💧, dan kebiasaan sehat.",
-            buttonLabel = "Buka Rutinitas Harian",
-            onClick = onOpenDailyRoutine
+            buttonLabel = "Buka Kalender Jurnal",
+            onClick = onOpenRoutineCalendar
         )
 
         // Kartu fitur 1: Kalkulator Kalori & Saran Menu

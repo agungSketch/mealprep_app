@@ -1,6 +1,5 @@
 package com.example.mealprep.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mealprep.domain.DailyMealCheck
 import com.example.mealprep.domain.DailyRoutineState
+import com.example.mealprep.domain.DateUtils
 import com.example.mealprep.domain.MealSlot
 import com.example.mealprep.domain.ScaledMeal
 
@@ -28,7 +28,7 @@ fun DailyRoutineScreen(
     onUpdateRoutineState: (DailyRoutineState) -> Unit,
     onOpenCalculator: () -> Unit,
     onOpenMealResult: () -> Unit,
-    onBackToHome: () -> Unit
+    onBackToCalendar: () -> Unit
 ) {
     val macroTarget = routineState.macroTarget
     val targetCalories = macroTarget?.targetCalories ?: 2000
@@ -50,23 +50,24 @@ fun DailyRoutineScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "📅 Rutinitas & Jurnal Harian",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Pantau jurnal makan, air minum & kebiasaan sehatmu hari ini.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = DateUtils.formatIndonesianDate(routineState.dateIso),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             OutlinedButton(
-                onClick = onBackToHome,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                onClick = onBackToCalendar,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
             ) {
-                Text("Home", fontSize = 12.sp)
+                Text("Kalender 📅", fontSize = 12.sp)
             }
         }
 

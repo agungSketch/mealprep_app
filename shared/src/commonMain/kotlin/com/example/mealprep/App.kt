@@ -15,6 +15,7 @@ import com.example.mealprep.ui.CalorieCalculatorScreen
 import com.example.mealprep.ui.DailyRoutineScreen
 import com.example.mealprep.ui.HomeScreen
 import com.example.mealprep.ui.MealPlanResultScreen
+import com.example.mealprep.ui.RoutineCalendarScreen
 import com.example.mealprep.ui.SplashScreen
 
 private sealed interface AppRoute {
@@ -26,7 +27,8 @@ private sealed interface AppRoute {
         val macroTarget: MacroTarget
     ) : AppRoute
     data object AiScanner : AppRoute
-    data object DailyRoutine : AppRoute
+    data object RoutineCalendar : AppRoute
+    data class DailyRoutine(val dateIso: String) : AppRoute
 }
 
 private const val GEMINI_API_KEY = BuildKonfig.GEMINI_API_KEY
@@ -38,18 +40,41 @@ fun App() {
         var currentRoute by remember { mutableStateOf<AppRoute>(AppRoute.HeroSplash) }
         var latestGoal by remember { mutableStateOf<GoalType?>(null) }
         var latestMacroTarget by remember { mutableStateOf<MacroTarget?>(null) }
-        var routineState by remember { mutableStateOf(DailyRoutineState()) }
+        var latestActivePlan by remember { mutableStateOf<RecommendedDayPlan?>(null) }
+
+        val todayIso = "2026-11-17"
+        var routineLogs by remember { mutableStateOf<Map<String, DailyRoutineState>>(emptyMap()) }
+
+        fun getRoutineForDate(dateIso: String): DailyRoutineState {
+            return routineLogs[dateIso] ?: DailyRoutineState(
+                dateIso = dateIso,
+                activeGoal = latestGoal,
+                macroTarget = latestMacroTarget,
+                activePlan = latestActivePlan,
+                mealChecks = latestActivePlan?.meals?.map { DailyMealCheck(meal = it, isCompleted = false) } ?: emptyList()
+            )
+        }
+
+        fun updateRoutineForDate(dateIso: String, newState: DailyRoutineState) {
+            routineLogs = routineLogs + (dateIso to newState)
+        }
 
         // Helper untuk sinkronisasi rencana menu ke Daily Routine
         fun applyPlanToRoutine(goal: GoalType, target: MacroTarget, plan: RecommendedDayPlan) {
+            latestActivePlan = plan
             val mealChecks = plan.meals.map { DailyMealCheck(meal = it, isCompleted = false) }
-            routineState = routineState.copy(
+            val existingToday = getRoutineForDate(todayIso)
+            val updatedToday = existingToday.copy(
+                dateIso = todayIso,
                 activeGoal = goal,
                 macroTarget = target,
                 activePlan = plan,
                 mealChecks = mealChecks
             )
+            updateRoutineForDate(todayIso, updatedToday)
         }
+
+        val currentTodayState = getRoutineForDate(todayIso)
 
         Crossfade(
             targetState = currentRoute,
@@ -66,7 +91,7 @@ fun App() {
                     HomeScreen(
                         activeGoal = latestGoal,
                         activeMacroTarget = latestMacroTarget,
-                        routineState = routineState,
+                        routineState = currentTodayState,
                         onOpenCalculator = { currentRoute = AppRoute.Calculator },
                         onOpenMealResult = {
                             val goal = latestGoal
@@ -78,7 +103,7 @@ fun App() {
                             }
                         },
                         onOpenAiScanner = { currentRoute = AppRoute.AiScanner },
-                        onOpenDailyRoutine = { currentRoute = AppRoute.DailyRoutine }
+                        onOpenRoutineCalendar = { currentRoute = AppRoute.RoutineCalendar }
                     )
                 }
 
@@ -106,7 +131,7 @@ fun App() {
                         onBackToCalculator = { currentRoute = AppRoute.Calculator },
                         onOpenDailyRoutine = { plan ->
                             applyPlanToRoutine(route.goal, route.macroTarget, plan)
-                            currentRoute = AppRoute.DailyRoutine
+                            currentRoute = AppRoute.RoutineCalendar
                         }
                     )
                 }
@@ -119,10 +144,26 @@ fun App() {
                     )
                 }
 
-                AppRoute.DailyRoutine -> {
+                AppRoute.RoutineCalendar -> {
+                    RoutineCalendarScreen(
+                        routineLogs = routineLogs,
+                        todayIso = todayIso,
+                        onSelectDate = { selectedDate ->
+                            currentRoute = AppRoute.DailyRoutine(dateIso = selectedDate)
+                        },
+                        onBackToHome = { currentRoute = AppRoute.Home }
+                    )
+                }
+
+                is AppRoute.DailyRoutine -> {
+                    val dateIso = route.dateIso
+                    val selectedState = getRoutineForDate(dateIso)
+
                     DailyRoutineScreen(
-                        routineState = routineState,
-                        onUpdateRoutineState = { newState -> routineState = newState },
+                        routineState = selectedState,
+                        onUpdateRoutineState = { newState ->
+                            updateRoutineForDate(dateIso, newState)
+                        },
                         onOpenCalculator = { currentRoute = AppRoute.Calculator },
                         onOpenMealResult = {
                             val goal = latestGoal
@@ -133,7 +174,7 @@ fun App() {
                                 currentRoute = AppRoute.Calculator
                             }
                         },
-                        onBackToHome = { currentRoute = AppRoute.Home }
+                        onBackToCalendar = { currentRoute = AppRoute.RoutineCalendar }
                     )
                 }
             }
