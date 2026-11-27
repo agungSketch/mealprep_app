@@ -90,7 +90,15 @@ private data class GeminiGenerationConfig(
 
 @Serializable
 private data class GeminiResponse(
-    val candidates: List<GeminiCandidate>? = null
+    val candidates: List<GeminiCandidate>? = null,
+    val error: FoodScannerGeminiErrorDto? = null
+)
+
+@Serializable
+private data class FoodScannerGeminiErrorDto(
+    val code: Int? = null,
+    val message: String? = null,
+    val status: String? = null
 )
 
 @Serializable
@@ -123,7 +131,7 @@ class GeminiFoodScannerService(
         mimeType: String = "image/jpeg"
     ): Result<FoodScanResult> {
         if (apiKey.isBlank()) {
-            return Result.failure(Exception("Gemini API Key belum diisi. Silakan masukkan Gemini API Key yang valid."))
+            return Result.failure(Exception("Gemini API Key belum diisi. Silakan isi GEMINI_API_KEY di file .env terlebih dahulu."))
         }
 
         return try {
@@ -162,12 +170,17 @@ class GeminiFoodScannerService(
                 )
             )
 
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey.trim()}"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}"
 
             val response: GeminiResponse = client.post(url) {
                 contentType(ContentType.Application.Json)
                 setBody(requestBody)
             }.body()
+
+            response.error?.let { err ->
+                val msg = err.message ?: "Error HTTP ${err.code}"
+                return Result.failure(Exception("Gemini AI Error: $msg"))
+            }
 
             val rawJsonText = response.candidates
                 ?.firstOrNull()
@@ -221,7 +234,7 @@ class GeminiFoodScannerService(
         mimeType: String = "image/jpeg"
     ): Result<RawIngredientScanResult> {
         if (apiKey.isBlank()) {
-            return Result.failure(Exception("Gemini API Key belum diisi."))
+            return Result.failure(Exception("Gemini API Key belum diisi. Silakan isi GEMINI_API_KEY di file .env terlebih dahulu."))
         }
 
         return try {
@@ -300,12 +313,17 @@ class GeminiFoodScannerService(
                 )
             )
 
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey.trim()}"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}"
 
             val response: GeminiResponse = client.post(url) {
                 contentType(ContentType.Application.Json)
                 setBody(requestBody)
             }.body()
+
+            response.error?.let { err ->
+                val msg = err.message ?: "Error HTTP ${err.code}"
+                return Result.failure(Exception("Gemini AI Error: $msg"))
+            }
 
             val rawJsonText = response.candidates
                 ?.firstOrNull()

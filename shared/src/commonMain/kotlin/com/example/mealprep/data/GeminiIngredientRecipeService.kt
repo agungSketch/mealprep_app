@@ -57,7 +57,15 @@ private data class IngredientGeminiConfig(
 
 @Serializable
 private data class IngredientGeminiResponse(
-    val candidates: List<IngredientGeminiCandidate>? = null
+    val candidates: List<IngredientGeminiCandidate>? = null,
+    val error: IngredientGeminiErrorDto? = null
+)
+
+@Serializable
+private data class IngredientGeminiErrorDto(
+    val code: Int? = null,
+    val message: String? = null,
+    val status: String? = null
 )
 
 @Serializable
@@ -138,11 +146,16 @@ class GeminiIngredientRecipeService(
                 generationConfig = IngredientGeminiConfig(responseMimeType = "application/json")
             )
 
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey.trim()}"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}"
             val response: IngredientGeminiResponse = client.post(url) {
                 contentType(ContentType.Application.Json)
                 setBody(body)
             }.body()
+
+            response.error?.let { err ->
+                val msg = err.message ?: "Error HTTP ${err.code}"
+                return Result.failure(Exception("Gemini AI Error: $msg"))
+            }
 
             val rawJson = response.candidates
                 ?.firstOrNull()
